@@ -84,5 +84,5 @@ Filters = [
     # pidp1-mods runs pdp1/pdp1central, and the setgid keeps group ownership
     # on new files (the drum image, saved configs, tape images). It matches
     # the tmpfiles fragment exactly, so rpm -V agrees with the modes.
-    '.*non-standard-dir-perm .*(pidp1-mods|Microtapes|Drums) 2775',
+    '.*non-standard-dir-perm .*pidp1-mods.* 2775',
 ]
