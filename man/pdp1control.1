@@ -1,0 +1,116 @@
+.TH PDP1CONTROL 1 "November 2026" "pidp1-mods" "PiDP-1 Commands"
+.SH NAME
+pdp1control \- start, stop and configure the PDP-1 simulator
+.SH SYNOPSIS
+.SY pdp1control
+.BI start " [switches]"
+.YS
+.SY pdp1control
+.BI "stop | restart | reload | status"
+.YS
+.SY pdp1control
+.BI "set " interface
+.YS
+.SY pdp1control
+.BI "panel " frontpanel
+.YS
+.SY pdp1control
+.BI "usbtape | t30dpy | soroban " y/n
+.YS
+.SH DESCRIPTION
+.B pdp1control
+owns the life cycle of the
+.BR pdp1 (1)
+emulator and the programs around it.
+It starts the front panel driver (real PiDP-1 hardware or the on-screen
+virtual panel), the emulator in a detached
+.BR screen (1)
+session, the chosen user interface, and feeds the emulator the boot
+configuration that matches the sense switch setting.
+.PP
+The start-time choices are kept per user in
+.IR ~/.config/pidp1-mods/pdp1control.config ,
+as name=value lines; the commands below write it, and
+.BR pdp1central (1)
+edits the same file.
+.SH COMMANDS
+.TP
+.BI start " [switches]"
+Start everything.
+.I switches
+is the boot selector number, normally read from the front panel sense
+switches with
+.BR scanpf (1);
+it selects
+.IR /var/lib/pidp1-mods/bootcfg/ n .cfg,
+whose
+.B PDP1_DIR
+token names the tape library.
+.TP
+.B stop
+Stop the emulator, the panel drivers and the interface programs.
+.TP
+.B restart
+.B stop
+followed by
+.BR start .
+.TP
+.B reload
+Re-read
+.IR /etc/pidp1-mods/pidp1.config
+(SIGINT to the emulator).
+.TP
+.B reloadt30
+Re-read the Type 30 display configuration (SIGHUP to
+.BR t30dpy (1)).
+.TP
+.BI set " interface"
+Choose the user interface:
+.BR gui " (pdp1_periphES windows), " web " (the pdpsrv browser front end) or " apps " (standalone programs such as t30dpy)."
+.TP
+.BI panel " frontpanel"
+Choose the front panel:
+.B pidp
+for the PiDP-1 hardware,
+.B virtual
+for the on-screen panel.
+.TP
+.BI usbtape " y/n"
+Use USB sticks as the paper tape reader and punch.
+.TP
+.BI t30dpy " y/n"
+Start the Type 30 display along with the simulator.
+.TP
+.BI soroban " y/n"
+Start the Soroban typewriter terminal along with the simulator.
+.TP
+.B status
+Report what is running.
+.SH ENVIRONMENT
+.TP
+.B PIDP1_ENV
+Where to find the locations file
+.IR pidp1-env.sh ;
+by default the one beside this script.
+Setting any of
+.BR PIDP1_STATEDIR ,
+.BR PIDP1_DATADIR ,
+.BR PIDP1_LIBEXECDIR ,
+.B PIDP1_BINDIR
+redirects that part of the install, which is how a build tree or a test
+root is used without editing anything.
+.SH FILES
+.TP
+~/.config/pidp1-mods/pdp1control.config
+per-user start-time choices
+.TP
+/etc/pidp1-mods/pidp1.config
+site configuration for the emulator and the panel drivers
+.TP
+/var/lib/pidp1-mods/bootcfg
+the per-selector boot configurations
+.SH "SEE ALSO"
+.BR pdp1 (1),
+.BR pdp1central (1),
+.BR pdp1ctl (1),
+.BR t30dpy (1)

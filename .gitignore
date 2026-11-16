@@ -83,5 +83,6 @@ permsyms.def.c
 
 __pycache__/
 
-# rpmbuild's tree when packaging/pidp1-mods.spec is built with --define '_topdir <this tree>/rpmbuild'
-/rpmbuild/
+# packaging/build-rpm.sh's staging (dist/) and products (dist-rpm/)
+/dist/
+/dist-rpm/

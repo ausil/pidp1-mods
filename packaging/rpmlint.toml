@@ -1,0 +1,88 @@
+# Local rpmlint overrides for the PiDP-1 package.
+#
+#   make rpmlint RPM_DIR=/tmp/rpb
+#
+# (RPMs only - see the Makefile for why the bare spec is not an argument.)
+# Each filter below is a known false positive or a recorded state of the
+# package; none hides a defect, and each says when it can go. The spec header
+# summarises the same list for whoever reads the spec instead of the tree.
+
+# rpmlint config files are flat key = value TOML (like
+# /etc/xdg/rpmlint/fedora.toml), so Filters must not be nested in a section.
+Filters = [
+    # Machine vocabulary, not typos: this is a 1960 computer (DEC manuals,
+    # the AI Lab memos). Matched on the quoted token only, so a genuine typo
+    # elsewhere still reports.
+    ".*spelling-error \\('(am1|ad1|dpy|env|fiodec|fstool|iot|mactoam1|microtape|mtp|ovlload|pdp|pidp|soroban|src|type550)'.*",
+
+    # The per-program Makefiles assemble their own compile lines (that is
+    # how the tree has always built, and why -march=native needed an
+    # ARCHFLAGS escape hatch for the packager); they ignore %optflags'
+    # -fpie. Making the whole tree PIE is a flags refactor across twenty
+    # makefiles, not a packaging change. Revisit per program as its Makefile
+    # learns to honour CC/CFLAGS.
+    '.*position-independent-executable-suggested .*',
+
+    # pidp1-mods is a new service group created by sysusers.d (the Fedora
+    # guidelines' way). Drop when the name is in rpmlint's users-groups
+    # list, /etc/xdg/rpmlint/users-groups.toml.
+    '.*non-standard-gid .*pidp1-mods.*',
+
+    # Man pages: the two front doors ship their own (man/pdp1.1,
+    # man/pdp1control.1). What is left has no page because it has no
+    # interface of its own: the tools are documented in Docs/ and
+    # self-describe with usage errors, the dialogs and helpers are what
+    # pdp1central and pdp1control call. Drop an entry when a real page
+    # exists.
+    '.*no-manual-page-for-binary (ad1|am1|asr33tape|decode_fiodec|disassemble|docviewer|drumlist|drumupdater|encode_fiodec|fastload|fstool|mactoam1|macro1|macro1_1|mkmicrotape|mtp|ovlload|pdp1audio|pdp1central|scanpf|t30dpy|tapevis|tape_visualizer|tkaskopenfile|tkaskopenfilewrite)($| .*)',
+
+    # The Exec= lines open a terminal emulator (lxterminal) and telnet that
+    # are Requires of the main package - a desktop box must get the icons
+    # without pulling LXDE on its own, and the entry points they run live
+    # in /usr/share/pidp1-mods/bin, owned by this package.
+    '.*desktopfile-without-binary .*(lxterminal|telnet|nohup)($| .*)',
+
+    # The versioned group(pidp1-mods) provide comes from the sysusers
+    # fragment, the unversioned duplicate from the file-owner generators;
+    # the package must own the state dirs and name the group, so no spec
+    # change removes the second one.
+    '.*useless-provides group\(pidp1-mods\).*',
+
+    # Release carries the snapshot segment (srcdate) that a hand-written
+    # changelog entry cannot know; the version matches. The alternatives are
+    # %autochangelog (hides the curated entries) or editing the changelog on
+    # every build.
+    '.*incoherent-version-in-changelog .*1\.0-1.*',
+
+    # Source0 has no URL because there is nothing to download: it is a git
+    # archive of this repository, made at the top of the build by
+    # packaging/build-rpm.sh (or by COPR's clone). Pointing it at a tarball
+    # nobody uploads would make the SRPM claim a source it cannot verify.
+    '.*invalid-url Source0: .*\.tar\.gz.*',
+
+    # FunStuff/ and Diagnostics/ ship their C sources on purpose: they are
+    # programs the user assembles on the machine (the install script's "make
+    # in the Demo or other program directories" step), not headers and
+    # objects for anything to link against.
+    '.*devel-file-in-non-devel-package .*/usr/share/pidp1-mods/(FunStuff|Diagnostics)/.*',
+
+    # The %post copies run guarded: cp -a only when pdp23drum is absent,
+    # and cp -n (never overwrite) for the state seeds, so the "dangerous"
+    # overwrite scenario cannot happen. The alternative - install -m644 from
+    # the package every upgrade - is what the guard exists to avoid: the
+    # drum image is the user's data.
+    '.*dangerous-command-in-%post cp.*',
+
+    # The vendored gorilla/websocket keeps its notice beside its sources
+    # (modules.txt requires the tree as go mod vendor wrote it) and a second
+    # copy travels under /usr/share/licenses; same file twice is the
+    # price of keeping the vendor tree pristine.
+    '.*files-duplicate .*/vendor/github.com/gorilla/websocket/LICENSE.*',
+
+    # 2775 root:pidp1-mods on the state directories, /etc/pidp1-mods and the
+    # writable Microtapes/Drums is the machine's shared-panel mode: anyone in
+    # pidp1-mods runs pdp1/pdp1central, and the setgid keeps group ownership
+    # on new files (the drum image, saved configs, tape images). It matches
+    # the tmpfiles fragment exactly, so rpm -V agrees with the modes.
+    '.*non-standard-dir-perm .*(pidp1-mods|Microtapes|Drums) 2775',
+]

@@ -1,0 +1,78 @@
+.TH PDP1 1 "November 2026" "pidp1-mods" "PiDP-1 Commands"
+.SH NAME
+pdp1 \- attach to the running PDP-1 simulator, or start a front-end program beside it
+.SH SYNOPSIS
+.SY pdp1
+.YS
+.SY pdp1
+.IR option
+.YS
+.SH DESCRIPTION
+.B pdp1
+is the front door to the PDP-1 emulator of the
+.BR pidp1-mods (7)
+package.
+With no arguments it attaches to the
+.BR screen (1)
+session of the simulator started by
+.BR pdp1control (1);
+detach again with Ctrl-A d.
+With one argument it starts a front-end program next to the running
+simulator, without disturbing it:
+.TP
+.B con
+the noisy Teletype model 33, connected to the emulator's Teletype port.
+The Teletype is the PiDP-10 project's
+.BR sty ;
+if it is not at
+.IR /opt/pidp10/bin/sty ,
+point
+.B PIDP10_STY
+at it, or use
+.B pdp1 soroban
+instead.
+.TP
+.B soroban
+a terminal window on the Soroban typewriter port.
+.TP
+.B ptr
+choose a paper tape in a dialog and mount it on the reader.
+.TP
+.B ptp
+save the paper tape punch output to a file.
+.TP
+.B tape
+the tape reader and punch window (tapevis).
+.SH ENVIRONMENT
+.TP
+.B PIDP1_ENV
+Where to find the locations file
+.IR pidp1-env.sh ;
+by default the one beside this script.
+.TP
+.B PIDP10_STY
+Path of the PiDP-10 noisy Teletype used by the
+.B con
+command.
+.PP
+All the location variables
+.IR pidp1-env.sh (PIDP1_DATADIR,
+PIDP1_STATEDIR, PIDP1_SYSCONFDIR, PIDP1_BINDIR, PIDP1_LIBEXECDIR) may be
+set to point the whole tool set at a build tree or a test root.
+.SH FILES
+.TP
+/usr/share/pidp1-mods
+read-only program data
+.TP
+/var/lib/pidp1-mods
+drum image, punch output, the tape library the boot configurations mount
+.TP
+/etc/pidp1-mods
+site configuration
+.SH "EXIT STATUS"
+0 when the requested program was started (or the screen session attached);
+non-zero when the simulator is not running or the front end could not start.
+.SH "SEE ALSO"
+.BR pdp1control (1),
+.BR pdp1central (1),
+.BR screen (1)
