@@ -1,5 +1,12 @@
 INC=-I../common -I../pdp1 -IPinctrl
 LIBS=-lpthread -lm
+
+# Link the libgpiod backend when Pinctrl/ compiled it in (same pkg-config
+# question as Pinctrl/Makefile asks; see the note there).
+ifeq ($(shell pkg-config --exists libgpiod 2>/dev/null && echo 1),1)
+LIBS += $(shell pkg-config --libs libgpiod)
+endif
+
 CFLAGS= $(INC) -O3 -Wno-unused-result
 
 all: pinctrl newpanel

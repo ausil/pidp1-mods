@@ -40,8 +40,14 @@ write images into. Add the operators who run the panel:
 * No subpackages yet. A `-panel` split (newpanel, pidp1_test, scanpf) is
   worth it when a machine with real PiDP-1 hardware and a headless box stop
   wanting the same dependency set.
-* The hardware panel driver is shipped without setuid; a cabinet runs
-  `src/panel_pidp1/setpriv.sh` (or waits for the libgpiod + udev route).
+* The hardware panel driver is shipped without setuid: it drives the panel
+  through libgpiod, and the packaged `60-pidp1-mods.rules`
+  (`/usr/lib/udev/rules.d`) hands the panel's controller -
+  `pinctrl-bcm2835` on a Pi 4 or earlier, `pinctrl-rp1` on a Pi 5 - to the
+  pidp1-mods group; cabinet users need only `usermod -aG pidp1-mods`. The
+  gpiomem nodes are group-accessible too, for the register backend that
+  still owns anything libgpiod cannot express. `setpriv.sh` remains for the
+  `/dev/mem` fallback on kernels with neither path.
 * `web_pdp1/vendor/` (gorilla/websocket, BSD-2) is committed so `%build`
   needs no network; that is the package's one vendored blob.
 * rpmlint exceptions, each with its reason, are in `rpmlint.toml` - not in

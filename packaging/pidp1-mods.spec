@@ -39,8 +39,11 @@
 # Deliberate deviations, expanded in packaging/README.md: no systemd service
 # (the simulator is interactive; pdp1control is the front door), no subpackage
 # split yet (a -panel split waits for hardware and headless boxes to diverge),
-# no setuid on the hardware panel driver (a cabinet runs
-# src/panel_pidp1/setpriv.sh, or waits for libgpiod plus a udev rule), and one
+# no setuid on the hardware panel driver (newpanel's libgpiod backend drives
+# the panel through /dev/gpiochipN, and the shipped 60-pidp1-mods.rules hands
+# the panel's controller to the pidp1-mods group; src/panel_pidp1/setpriv.sh
+# is left for the /dev/mem fallback on kernels that have neither gpiomem nor
+# gpiochip access), and one
 # vendored blob: web_pdp1/vendor, gorilla/websocket, so %%build needs no
 # network. rpmlint's exceptions, each with its reason, are in rpmlint.toml.
 
@@ -65,9 +68,12 @@ Source2:        pidp1-mods.tmpfiles.conf
 BuildRequires:  gcc, make, flex, bison, zlib-devel
 BuildRequires:  desktop-file-utils, systemd-rpm-macros
 BuildRequires:  pkgconfig(sdl2) pkgconfig(SDL2_image) pkgconfig(SDL2_ttf)
+BuildRequires:  pkgconfig(libgpiod)
 BuildRequires:  golang, python3
 
 Requires:       systemd nmap-ncat screen zenity python3 python3-tk lxterminal telnet
+# udevadm in the scriptlets that reload the panel rule
+Requires(post): systemd-udev
 Recommends:     golang
 # the noisy Teletype model 33 that `pdp1 con` starts (its sty, PIDP10_STY)
 Suggests:       pidp10
@@ -223,9 +229,14 @@ install -m 644 install/ptr-icon.svg       $icondir/pidp1-ptp.svg
 install -m 644 install/ptr-icon.svg       $icondir/pidp1-ptr.svg
 install -m 644 install/soroban-icon2.svg  $icondir/soroban.svg
 
-# The two OS-integration fragments, so a checkout and the build see one copy
+# The OS-integration fragments, so a checkout and the build see one copy
 install -Dm 0644 %{SOURCE1} %{buildroot}%{_sysusersdir}/pidp1-mods.conf
 install -Dm 0644 %{SOURCE2} %{buildroot}%{_tmpfilesdir}/pidp1-mods.conf
+# the udev rule that hands the panel's GPIO chip (and gpiomem, for the
+# register backend) to the pidp1-mods group; it lives under packaging/systemd/
+# beside its siblings, and Source0 carries it into the build
+install -Dm 0644 packaging/systemd/udev.d/60-pidp1-mods.rules \
+    %{buildroot}%{_udevrulesdir}/60-pidp1-mods.rules
 
 %check
 # the desktop entries must actually parse, and the mactoam1 fixture legs must
@@ -254,9 +265,16 @@ fi
 cp -aN $da/tapes/.   $st/tapes/   2>/dev/null || :
 cp -aN $da/bootcfg/. $st/bootcfg/ 2>/dev/null || :
 gtk-update-icon-cache -qf %{_datadir}/icons/hicolor 2>/dev/null || :
+# re-apply the shipped rule to the panel nodes so an existing cabinet does
+# not wait for a reboot (no-op where neither node family exists)
+udevadm control --reload-rules 2>/dev/null || :
+for d in /dev/gpiomem* /dev/gpiochip*; do
+    [ -e "$d" ] && udevadm trigger -c add "$d" 2>/dev/null || :
+done
 
 %postun
 gtk-update-icon-cache -qf %{_datadir}/icons/hicolor 2>/dev/null || :
+udevadm control --reload-rules 2>/dev/null || :
 
 %files
 %license LICENSE
@@ -314,6 +332,7 @@ gtk-update-icon-cache -qf %{_datadir}/icons/hicolor 2>/dev/null || :
 %attr(0664, root, pidp1-mods) %{_datadir}/pidp1-mods/Drums/*
 %{_sysusersdir}/pidp1-mods.conf
 %{_tmpfilesdir}/pidp1-mods.conf
+%{_udevrulesdir}/60-pidp1-mods.rules
 %{_datadir}/applications/audioOff.desktop
 %{_datadir}/applications/audioOn.desktop
 %{_datadir}/applications/pdp1central.desktop

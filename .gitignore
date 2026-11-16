@@ -42,6 +42,13 @@
 *.d
 *.so
 
+# ...but the OS-integration fragment directories really are named *.d
+# (sysusers.d, tmpfiles.d, udev.d); *.d is here for gcc's dependency files,
+# not to hide them. The first line re-includes the directory so the second
+# can reach its files.
+!packaging/systemd/*.d/
+!packaging/systemd/*.d/*
+
 # bison/flex and the permission symbol table generator
 lex.yy.c
 y.tab.c

@@ -2,9 +2,14 @@
 #
 # Give the hardware panel driver its privileges, the checkout-install equivalent of what
 # install.sh does for bin/panel_pidp1: setuid for the GPIO pins, and the option of running
-# as a real-time thread. Works on this checkout wherever it lives. The packaged version
-# leaves this to the administrator; the eventual fix is libgpiod plus a udev rule, after
-# which neither is needed.
+# as a real-time thread. Works on this checkout wherever it lives.
+#
+# This is only needed for the register backend's /dev/mem fallback. newpanel
+# now prefers the libgpiod backend: where it can claim the Pi's gpiochip -
+# packaged installs ship 60-pidp1-mods.rules and cabinet users are in the
+# pidp1-mods group - the driver runs unprivileged and setuid root, and this
+# script is not needed. A bare checkout has neither the group nor the rule
+# installed, which is why it still calls for them.
 
 here="$(cd "$(dirname "$(readlink -f "$0")")" && pwd)"
 sudo chmod +s "$here/newpanel"

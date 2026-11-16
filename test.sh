@@ -19,8 +19,11 @@ sleep 2
 echo
 echo starting pidp-1 panel driver...
 
-# Until the driver asks the kernel for the pins through libgpiod, and a udev rule grants the
-# pins to a group, it has to be root to reach /dev/gpiochip.
+# The driver drives the panel through libgpiod when it can claim the Pi's gpiochip; a
+# packaged install ships 60-pidp1-mods.rules and cabinet users are in the pidp1-mods group,
+# which makes that sudo unnecessary there. A bare checkout has neither the group nor the
+# rule, so it starts the driver as root. PIDP1_GPIO_CHIP pins the chip by name if a board
+# has more than one.
 sudo "$PIDP1_LIBEXECDIR/panel_pidp1"&
 
 echo ...started panel driver

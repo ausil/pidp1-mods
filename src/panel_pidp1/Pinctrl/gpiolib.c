@@ -19,6 +19,9 @@
 
 #include "gpiochip.h"
 #include "util.h"
+#ifdef HAVE_GPIOD
+#include "gpiolib_gpiod.h"
+#endif
 
 #define ARRAY_SIZE(_a) (sizeof(_a) / sizeof(_a[0]))
 
@@ -58,6 +61,41 @@ const char *fsel_names[] =
 };
 
 void (*verbose_callback)(const char *);
+
+#ifdef HAVE_GPIOD
+// On a kernel that ships no gpiomem and locks /dev/mem with
+// CONFIG_STRICT_DEVMEM (Fedora's aarch64), the register backend cannot map
+// anything. With the libgpiod backend active that is survivable - every
+// operation the panel needs has a line-request equivalent - so the register
+// path's failures stop being fatal. gpiolib_mmap() additionally drops the
+// half-initialized chip table so gpioGetInterface() fails cleanly instead of
+// handing out callbacks aimed at registers that were never mapped.
+static int
+gpiod_tolerate(int rc)
+{
+    if( (rc < 0) && gpiod_backend_active() )
+    {
+        return(0);
+    }
+
+    return(rc);
+}
+
+static int
+gpiod_tolerate_mmap(int rc)
+{
+    if( rc && gpiod_backend_active() )
+    {
+        numGpioChips = 0;
+        return(0);
+    }
+
+    return(rc);
+}
+#else
+#define gpiod_tolerate(rc)         (rc)
+#define gpiod_tolerate_mmap(rc)    (rc)
+#endif
 
 // Instantiates chip calling its gpio_create_instance() interface method with dtnodeP and
 // records it in the gpioChips[] table at slot numGpioChips.
@@ -130,6 +168,13 @@ const GPIO_CHIP_T *chipP;
 int
 gpio_num_is_valid(unsigned gpio)
 {
+#ifdef HAVE_GPIOD
+    if( gpiod_backend_active() )
+    {
+        return(gpiod_backend_num_is_valid(gpio));
+    }
+#endif
+
     return( (gpio < MAX_GPIO_PINS) && !!gpioNames[gpio] );
 }
 
@@ -140,6 +185,13 @@ gpio_get_dir(unsigned gpio)
 const GPIO_CHIP_INTERFACE_T *ifaceP;
 unsigned gpioOffset;
 void *privP;
+
+#ifdef HAVE_GPIOD
+    if( gpiod_backend_active() )
+    {
+        return(gpiod_backend_get_dir(gpio));
+    }
+#endif
 
     ifaceP = NULL;
 
@@ -158,6 +210,14 @@ gpio_set_dir(unsigned gpio, GPIO_DIR_T dir)
 const GPIO_CHIP_INTERFACE_T *ifaceP;
 unsigned gpioOffset;
 void *privP;
+
+#ifdef HAVE_GPIOD
+    if( gpiod_backend_active() )
+    {
+        gpiod_backend_set_dir(gpio, dir);
+        return;
+    }
+#endif
 
     ifaceP = NULL;
 
@@ -207,6 +267,18 @@ const GPIO_CHIP_INTERFACE_T *ifaceP;
 unsigned gpioOffset;
 void *privP;
 
+#ifdef HAVE_GPIOD
+    // Input/output is a direction, which the character device owns; anything
+    // else is pin multiplexing, which it does not expose, and stays with the
+    // register backend.
+    if( gpiod_backend_active() &&
+        ((func == GPIO_FSEL_INPUT) || (func == GPIO_FSEL_OUTPUT)) )
+    {
+        gpiod_backend_set_fsel(gpio, func);
+        return;
+    }
+#endif
+
     ifaceP = NULL;
 
     if( gpioGetInterface(gpio, &ifaceP, &privP, &gpioOffset) == 0 )
@@ -222,6 +294,14 @@ gpio_set_drive(unsigned gpio, GPIO_DRIVE_T drv)
 const GPIO_CHIP_INTERFACE_T *ifaceP;
 unsigned gpioOffset;
 void *privP;
+
+#ifdef HAVE_GPIOD
+    if( gpiod_backend_active() )
+    {
+        gpiod_backend_set_drive(gpio, drv);
+        return;
+    }
+#endif
 
     ifaceP = NULL;
 
@@ -245,6 +325,14 @@ unsigned c;
 int i;
 
     assert(count <= GPIO_MULTI_MAX_PINS);
+
+#ifdef HAVE_GPIOD
+    if( gpiod_backend_active() )
+    {
+        gpiod_backend_set_multi_drive(gpios, drvs, count);
+        return;
+    }
+#endif
 
     for(c = 0; c < numGpioChips; c++)
     {
@@ -293,6 +381,14 @@ const GPIO_CHIP_INTERFACE_T *ifaceP;
 unsigned gpioOffset;
 void *privP;
 
+#ifdef HAVE_GPIOD
+    if( gpiod_backend_active() )
+    {
+        gpiod_backend_set(gpio);
+        return;
+    }
+#endif
+
     ifaceP = NULL;
 
     if( gpioGetInterface(gpio, &ifaceP, &privP, &gpioOffset) == 0 )
@@ -310,6 +406,14 @@ const GPIO_CHIP_INTERFACE_T *ifaceP;
 unsigned gpioOffset;
 void *privP;
 
+#ifdef HAVE_GPIOD
+    if( gpiod_backend_active() )
+    {
+        gpiod_backend_clear(gpio);
+        return;
+    }
+#endif
+
     ifaceP = NULL;
 
     if( gpioGetInterface(gpio, &ifaceP, &privP, &gpioOffset) == 0 )
@@ -326,6 +430,13 @@ gpio_get_level(unsigned gpio)
 const GPIO_CHIP_INTERFACE_T *ifaceP;
 unsigned gpioOffset;
 void *privP;
+
+#ifdef HAVE_GPIOD
+    if( gpiod_backend_active() )
+    {
+        return(gpiod_backend_get_level(gpio));
+    }
+#endif
 
     ifaceP = NULL;
 
@@ -363,6 +474,13 @@ const GPIO_CHIP_INTERFACE_T *ifaceP;
 unsigned gpioOffset;
 void *privP;
 
+#ifdef HAVE_GPIOD
+    if( gpiod_backend_active() )
+    {
+        return(gpiod_backend_get_pull(gpio));
+    }
+#endif
+
     ifaceP = NULL;
 
     if( gpioGetInterface(gpio, &ifaceP, &privP, &gpioOffset) == 0 )
@@ -380,6 +498,14 @@ gpio_set_pull(unsigned gpio, GPIO_PULL_T pull)
 const GPIO_CHIP_INTERFACE_T *ifaceP;
 unsigned gpioOffset;
 void *privP;
+
+#ifdef HAVE_GPIOD
+    if( gpiod_backend_active() )
+    {
+        gpiod_backend_set_pull(gpio, pull);
+        return;
+    }
+#endif
 
     ifaceP = NULL;
 
@@ -654,6 +780,15 @@ const char *nameP, *archNameP;
 
     aliasP = NULL;
 
+#ifdef HAVE_GPIOD
+    // Claim the panel's GPIO chip through the character device first: on a
+    // distribution kernel that is the only way the panel can reach the pins
+    // at all, and its presence makes the register path's failures below
+    // survivable (see gpiod_tolerate()). The device-tree probe still runs:
+    // it owns the header pin/name tables the caller prints.
+    gpiod_backend_probe();
+#endif
+
     for( pin = 0; pin <= NUM_HDR_PINS; pin++ )
     {
         hdrGpios[pin] = GPIO_INVALID;
@@ -718,14 +853,14 @@ const char *nameP, *archNameP;
         if( physAddr == INVALID_ADDRESS )
         {
             dt_free(aliasP);
-            return(-1);
+            return(gpiod_tolerate(-1));
         }
 
         instP = gpioCreateInstance(chipP, physAddr, NULL, aliasP);
         if( !instP )
         {
             dt_free(aliasP);
-            return(-1);
+            return(gpiod_tolerate(-1));
         }
 
         sprintf(pathBuf, "/dev/gpiomem%s", gpiomemIdx);
@@ -761,7 +896,7 @@ const char *nameP, *archNameP;
 
         if( numGpios > MAX_GPIO_PINS )
         {
-            return(-1);
+            return(gpiod_tolerate(-1));
         }
 
         namesP = dt_read_prop(instP->dtnodeP, "gpio-line-names", &namesLen);
@@ -953,7 +1088,10 @@ void *newPrivP;
                 memFd = open("/dev/mem", O_RDWR | O_SYNC);
                 if( memFd < 0 )
                 {
-                    return(errno);
+                    // The usual state on a distribution kernel: no gpiomem
+                    // and CONFIG_STRICT_DEVMEM. Fatal only without the
+                    // libgpiod backend to fall back on.
+                    return(gpiod_tolerate_mmap(errno));
                 }
             }
 
@@ -969,14 +1107,14 @@ void *newPrivP;
 
         if( gpioMapP == MAP_FAILED )
         {
-            return(errno);
+            return(gpiod_tolerate_mmap(errno));
         }
 
         newPrivP = chipP->interface->gpio_probe_instance(instP->privP,
             (void *)((char *)gpioMapP + align));
         if( !newPrivP )
         {
-            return(-1);
+            return(gpiod_tolerate_mmap(-1));
         }
 
         instP->privP = newPrivP;
@@ -990,4 +1128,8 @@ void
 gpiolib_set_verbose(void (*callback)(const char *))
 {
     verbose_callback = callback;
+
+#ifdef HAVE_GPIOD
+    gpiod_backend_set_verbose(callback);
+#endif
 }
