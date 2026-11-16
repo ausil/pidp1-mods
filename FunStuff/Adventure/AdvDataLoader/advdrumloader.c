@@ -5,7 +5,7 @@
  *
  * Usage advdrumloader [-i path-to-live-drum-image] datafile
  *
- * If no -i path is given, the default is '/opt/pidp1-mods/pdp23drum'.
+ * If no -i path is given, the default is '/var/lib/pidp1-mods/pdp23drum'.
  *
  * The first (int size) word in the datafile is the initial track, the rest
  * is track images. If the last is not a full track, a full track of data
@@ -30,6 +30,7 @@
 // WIZCOM_BASE_OFFSET) come from the file adventure.am1 includes too, so the
 // assembler and this tool cannot drift apart.
 #include "advmagic.h"
+#include "pidp1_paths.h"
 #define MAX_TRACK (NUM_TRACKS -1)       // highest valid track number
 
 void usage(void);

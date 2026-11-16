@@ -1,7 +1,7 @@
 Ovlload puts a program's drum overlays, from the .ovl file am1 creates, onto the Type 23 drum,
 then loads the program's tape into the pdp-1 as fastload does.
 
-By default, the drum image is the file '/opt/pidp1-mods/pdp23drum'.
+By default, the drum image is the file '/var/lib/pidp1-mods/pdp23drum'.
 Each overlay goes on the track am1 chose for it at the drum addresses of its core window.
 Nothing else on the drum is touched.
 The program's stamp on its tape must match the .ovl's, so ovlload never loads a drum and a program

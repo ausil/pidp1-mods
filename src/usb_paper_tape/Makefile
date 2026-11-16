@@ -1,5 +1,5 @@
 CC=gcc
-CFLAGS=-Wall -Wextra -std=c99 -O2
+CFLAGS=-Wall -Wextra -std=c99 -O2 -I../common
 TARGET3=pdp1_usb_monitor
 SOURCE3=pdp1_usb_monitor.c
 LIBS=-ludev

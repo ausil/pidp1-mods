@@ -13,10 +13,15 @@
 # 07-Nov-26 wje (Claude) the soroban choice: start the Soroban typewriter terminal with web or
 #    apps, when there is a desktop
 
-# The install directory; PIDP1_ROOT points it elsewhere, for testing.
-root="${PIDP1_ROOT:-/opt/pidp1-mods}"
+# Where everything is: see bin/pidp1-env.sh, which the environment overrides. Once installed
+# the read-only data (the helper scripts, the web assets) and the writable state (the drum
+# image, coremem, punch.out, tapes/, bootcfg/) are no longer the same directory, so paths are
+# spelled out below rather than taken relative to one root. 'root' is the state directory:
+# pdp1 starts there, and writes its punch.out and coremem into its own directory.
+. "${PIDP1_ENV:-$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")/pidp1-env.sh}"
+root="$PIDP1_STATEDIR"
 
-# The start-time choices are kept in $root/pdp1control.config, as name=value lines:
+# The start-time choices are kept in $PIDP1_CONTROL_CONFIG, as name=value lines:
 #   interface=web       gui, web or apps
 #   frontpanel=virtual  pidp or virtual
 #   usbtape=n           y to use the USB ports for the paper tape reader and punch
@@ -25,7 +30,12 @@ root="${PIDP1_ROOT:-/opt/pidp1-mods}"
 #                       the typewriter)
 # A missing file or line keeps the default below. The set, panel, usbtape, t30dpy and soroban
 # commands write it.
-settings="$root/pdp1control.config"
+#
+# They belong to the user who starts the panel, not to the machine: $PIDP1_STATEDIR is shared
+# and not necessarily writable by this user, and two people testing a build should not inherit
+# each other's choices.
+mkdir -p "$PIDP1_USERCONF" 2>/dev/null
+settings="$PIDP1_CONTROL_CONFIG"
 interface="web"
 frontpanel="virtual"
 usb_paper_tape="n"
@@ -33,8 +43,8 @@ t30dpy="n"
 soroban="n"
 
 argc=$#
-pidp1="$root/bin/pdp1"
-cd "$root"
+pidp1="$PIDP1_LIBEXECDIR/pdp1"
+cd "$root" || { echo "cannot use $root, the PiDP-1 state directory" >&2; exit 1; }
 
 # Requires screen utility for detached pidp1 console functionality.
 #
@@ -222,13 +232,13 @@ do_start() {
 	echo start panel driver, either virtual or real, depends on the symlink
 	if [ "$frontpanel" = "pidp" ]; then
 		echo starting PiDP-1 hardware front panel driver
-	        nohup bin/panel_pidp1 > /dev/null 2>&1 &
+	        nohup "$PIDP1_LIBEXECDIR/panel_pidp1" > /dev/null 2>&1 &
 	elif [ "$frontpanel" = "virtual" ]; then
 		echo starting on-screen virtual front panel, not PiDP-1 hardware
 		echo use
 		echo    pdp1control panel pidp
 		echo to change that, if you have a PiDP-1!
-	        nohup bin/vpanel_pdp1 > /dev/null 2>&1 &
+	        nohup "$PIDP1_LIBEXECDIR/vpanel_pdp1" > /dev/null 2>&1 &
 	else
                 echo ERROR: NO VALID FRONT PANEL DRIVER, fix with
 		echo    pdp1control panel
@@ -238,7 +248,7 @@ do_start() {
 	sleep 1 # only needed for autoboot at startup
 
 	echo read boot config from sense switches
-	bin/scanpf
+	"$PIDP1_BINDIR/scanpf"
 	sw=$?
 
 	#sw="${2:-$sw}"
@@ -246,23 +256,28 @@ do_start() {
 	echo switches set to $sw
 
 	echo start pidp1 in screen
-	screen -dmS pidp1 bin/pdp1
+	screen -dmS pidp1 "$pidp1"
 	status=$?
 
 	if [ "$interface" = "gui" ]; then
 		echo start gui peripherals
 		sleep 2
-		nohup bin/pdp1_periphES > /dev/null 2>&1 &
+		nohup "$PIDP1_LIBEXECDIR/pdp1_periphES" > /dev/null 2>&1 &
 	elif [ "$interface" = "web" ]; then
 		echo start web server
-		cd "$root/web_pdp1"
-		nohup go run "$root/web_pdp1/pdpsrv.go" > /dev/null 2>&1 &
+		cd "$PIDP1_WEB"
+		# the installed tree ships the built server; a build tree runs the source
+		if [ -x "$PIDP1_LIBEXECDIR/pdpsrv" ]; then
+			nohup "$PIDP1_LIBEXECDIR/pdpsrv" > /dev/null 2>&1 &
+		else
+			nohup go run "$PIDP1_WEB/pdpsrv.go" > /dev/null 2>&1 &
+		fi
 		cd "$root"
 	elif [ "$interface" = "apps" ]; then
 		echo start apps
 		sleep 1
-		echo start /usr/local/bin/t30dpy
-		nohup /usr/local/bin/t30dpy >/dev/null 2>&1 &
+		echo start "$PIDP1_BINDIR/t30dpy"
+		nohup "$PIDP1_BINDIR/t30dpy" >/dev/null 2>&1 &
 		# tapevis, the tape reader and punch window, is rarely wanted; run bin/tapevis for it
 	fi
 
@@ -275,8 +290,8 @@ do_start() {
 		if [ "$interface" = "gui" ]; then
 			wait_display_client
 		fi
-		echo start /usr/local/bin/t30dpy
-		nohup /usr/local/bin/t30dpy >/dev/null 2>&1 &
+		echo start "$PIDP1_BINDIR/t30dpy"
+		nohup "$PIDP1_BINDIR/t30dpy" >/dev/null 2>&1 &
 	fi
 
 	if [ "$soroban" = "y" ]; then
@@ -285,11 +300,15 @@ do_start() {
 
 	sleep 1 # 0.3
 	echo "Configuring PiDP-1 for boot number $sw"
-	cat "bootcfg/${sw}.cfg" | bin/pdp1ctl
-	
+	if ! test -r "$PIDP1_BOOTCFG/${sw}.cfg"; then
+		echo "no boot configuration $PIDP1_BOOTCFG/${sw}.cfg, nothing loaded"
+	else
+		cat "$PIDP1_BOOTCFG/${sw}.cfg" | "$PIDP1_SCRIPTS/pdp1ctl"
+	fi
+
 	if [ "$usb_paper_tape" = "y" ]; then
 		echo start usb paper tape tool
-		nohup bin/pdp1_usb_monitor > /dev/null 2>&1  &
+		nohup "$PIDP1_LIBEXECDIR/pdp1_usb_monitor" > /dev/null 2>&1  &
 	fi
 
 	return $status
@@ -318,7 +337,7 @@ do_stop() {
 	pkill -x panel_pidp1
 	pkill -x vpanel_pdp1
 	# its name is over the kernel's 15 characters, so match the command line
-	pkill -f bin/pdp1_usb_monitor
+	pkill -f pdp1_usb_monitor
 
 	sleep 0.5
 	is_running

@@ -3,8 +3,9 @@
 // Shared data between advdataloader components.
 
 #include "symtab.h"
+#include "pidp1_paths.h"
 
-#define DEFAULT_DRUM "/opt/pidp1-mods/pdp23drum"
+#define DEFAULT_DRUM PIDP1_DRUMFILE
 
 // Drum layout constants.
 // SAVE and WIZCOM are fixed-size blocks at the beginning of track 16 (by default),

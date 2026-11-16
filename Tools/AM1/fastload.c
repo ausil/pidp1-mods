@@ -37,9 +37,10 @@
 #include "ad1link.h"
 #include "tapeimage.h"
 #include "ovlfile.h"
+#include "pidp1_paths.h"
 
-#define DEFAULT_MEMFILE "/opt/pidp1-mods/coremem"
-#define DEFAULT_DRUM "/opt/pidp1-mods/pdp23drum"
+#define DEFAULT_MEMFILE PIDP1_COREMEM
+#define DEFAULT_DRUM PIDP1_DRUMFILE
 
 // A program with drum overlays: its .ovl, and the drum as it was before they were written.
 static OvlFile ovl;
@@ -407,11 +408,11 @@ usage(void)
     fprintf(stderr, "    -y is auto-start.\n");
     fprintf(stderr, "        If active memory has been loaded, the program is automatically started.\n");
     fprintf(stderr, "    -m updates the coremem file, the pidp1 and  program must be manually started.\n");
-    fprintf(stderr, "    -f specifies the coremem file, the default is /opt/pidp1-mods/coremem.\n");
+    fprintf(stderr, "    -f specifies the coremem file, the default is " PIDP1_COREMEM ".\n");
     fprintf(stderr, "        Don't use -m if the pidp-1 is running, the memory file will be overwritten by it.\n");
     fprintf(stderr, "    A tape with an .ovl, rimfile's name with .ovl, has drum overlays,\n");
     fprintf(stderr, "        If they match,they are  written to the drum file first.\n");
-    fprintf(stderr, "    -i specifies the drum file, the default is /opt/pidp1-mods/pdp23drum.\n");
+    fprintf(stderr, "    -i specifies the drum file, the default is " PIDP1_DRUMFILE ".\n");
     fprintf(stderr, "        With -h naming another machine the drum cannot be written, run ovlload there.\n");
     exit(1);
 }

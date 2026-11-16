@@ -1,3 +1,13 @@
+#!/bin/bash
+#
+# Drive the PiDP-1 hardware front panel by hand: a light sweep, then the switches, then the
+# joystick, so dead lamps and stuck switches can be found without a simulator running.
+# The panel driver is started here rather than by pdp1control, and the test owns it.
+#
+# 15-Nov-2026 wje locations from bin/pidp1-env.sh.
+
+. "${PIDP1_ENV:-$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")/bin/pidp1-env.sh}"
+
 echo Starting PiDP-1 test program
 echo
 echo stopping pdp-1 simulation, if it is running...
@@ -9,7 +19,9 @@ sleep 2
 echo
 echo starting pidp-1 panel driver...
 
-sudo /opt/pidp1-mods/bin/panel_pidp1&
+# Until the driver asks the kernel for the pins through libgpiod, and a udev rule grants the
+# pins to a group, it has to be root to reach /dev/gpiochip.
+sudo "$PIDP1_LIBEXECDIR/panel_pidp1"&
 
 echo ...started panel driver
 sleep 1
@@ -39,7 +51,7 @@ echo "Joystick test: press each button"
 echo "--> check for a change in output"
 echo
 
-/opt/pidp1-mods/bin/pidp1_test
+"$PIDP1_BINDIR/pidp1_test"
 
 echo
 echo test program has ended

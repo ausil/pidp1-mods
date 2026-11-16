@@ -103,7 +103,7 @@ you can always reinstall from the other one if you want to switch back.
 
 ## Configuration file
 
-A configuration file, /opt/pidp1-mods/pidp1.config, is read when the emulator starts.
+A configuration file, /etc/pidp1-mods/pidp1.config (the checkout root one in an unpacked tree), is read when the emulator starts.
  t allows control over many features, see the provided one and the documentation for details.
 It can be changed on the fly and a *SIGINT* sent to the pdp1 process to have it reload the configuration.
 
@@ -124,7 +124,7 @@ The pdp1control command and the other scripts work as before, and are what to us
 See *Docs/UsingPdp1central.md*.
 
 **After upgrading:** the interface, front panel and USB paper tape choices are now kept in
-/opt/pidp1-mods/pdp1control.config, not inside pdp1control.sh.
+~/.config/pidp1-mods/pdp1control.config, not inside pdp1control.sh.
 If you had changed any of them, set them again once, by answering the install script's questions or with
 `pdp1control set`, `pdp1control panel` and `pdp1control usbtape`.
 

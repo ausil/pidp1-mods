@@ -1,4 +1,4 @@
-CC=gcc -O3
+CC=gcc -O3 -I../../src/common
 #CC=gcc -g
 
 all: mtp fstool asr33tape

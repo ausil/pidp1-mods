@@ -57,7 +57,7 @@ The background can currently only be set by editing the configuration,
 
 ## Light pen
 
-With `guilightpen=yes` in `/opt/pidp1-mods/pidp1.config` and `lightpen=on` for the emulator,
+With `guilightpen=yes` in `/etc/pidp1-mods/pidp1.config` and `lightpen=on` for the emulator,
 the left mouse button is the light pen on the display.
 Click or drag over any active image a program is displaying.
 It is off in layout mode and outside the image.

@@ -62,8 +62,9 @@
 #include "helpmsgs.h"
 #include "y.tab.h"
 #include "flexoConversion.h"
+#include "pidp1_paths.h"
 
-#define MEMFILE "/opt/pidp1-mods/coremem"
+#define MEMFILE PIDP1_COREMEM
 
 int exitReason;         // EXIT or QUIT, tells leave() how to treat breakpoints, 0 means an abnormal exit.
 

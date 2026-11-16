@@ -17,7 +17,9 @@
 # 06-Oct-26 wje (Claude) save the emulator's punch.out when no front end holds the punch, as
 #    under apps, which starts none; absolute paths; a FILE argument; say what happened
 
-root="${PIDP1_ROOT:-/opt/pidp1-mods}"
+. "${PIDP1_ENV:-$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")/pidp1-env.sh}"
+# punch.out and the default save directory live with what the machine writes
+root="$PIDP1_STATEDIR"
 default_name="new_tape"
 dialog=0
 
@@ -86,10 +88,10 @@ if [ $# -ge 1 ]; then
 else
     dialog=1
 
-    # Launch zenity save dialog, starting in /opt/pidp1-mods
+    # Launch zenity save dialog, starting in the tape library
     file=$(zenity --file-selection --save --confirm-overwrite \
                   --title="Save As" \
-                  --filename="${root}/tapes/${default_name}")
+                  --filename="${PIDP1_TAPES}/${default_name}")
 
     # Handle cancel: zenity 3 exits 1; zenity 4 exits 0 and prints nothing, which would save
     # to the current directory.

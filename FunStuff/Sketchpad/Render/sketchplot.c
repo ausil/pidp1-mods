@@ -13,7 +13,7 @@
  *
  * Usage: sketchplot [-d drive] [-p picture] [-t image] [-s size] [-i] out.png
  *        sketchplot [-d drive] [-p picture] [-t image] --dump
- * A drive's image file is its line in /opt/pidp1-mods/microtapes.txt.
+ * A drive's image file is its line in /etc/pidp1-mods/microtapes.txt.
  *
  * 15-Oct-2026, Claude: written.
  * 18-Oct-2026, Claude: tape format 14, sixteen pictures, an instance's size at any scale.
@@ -37,9 +37,10 @@
 #include <math.h>
 #include <getopt.h>
 #include <zlib.h>
+#include "pidp1_paths.h"
 
-#define MOUNTLIST "/opt/pidp1-mods/microtapes.txt"
-#define TAPEDIR "/opt/pidp1-mods/Microtapes/"
+#define MOUNTLIST PIDP1_MOUNTLIST
+#define TAPEDIR PIDP1_MICROTAPEDIR "/"
 #define LOCKED ",locked"
 
 #define WORDMASK 0777777

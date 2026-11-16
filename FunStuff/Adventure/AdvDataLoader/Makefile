@@ -1,5 +1,5 @@
 CC = gcc
-CFLAGS = -g -Wall
+CFLAGS = -g -Wall -I../../../src/common
 YACC = bison
 LEX = flex
 BISONFLAGS =

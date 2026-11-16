@@ -65,9 +65,10 @@
 #include "../AM1/font5x7.h"
 #include "ovlfile.h"
 #include "ovlwriter.h"
+#include "pidp1_paths.h"
 
-#define DEFAULT_DRUM "/opt/pidp1-mods/pdp23drum"
-#define DEFAULT_MEMFILE "/opt/pidp1-mods/coremem"
+#define DEFAULT_DRUM PIDP1_DRUMFILE
+#define DEFAULT_MEMFILE PIDP1_COREMEM
 
 #define EXIT_DONE 0
 #define EXIT_DIFFERS 1

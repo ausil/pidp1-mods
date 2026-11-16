@@ -37,6 +37,11 @@ sudo rm -f /usr/local/bin/t30dpy 2>&1 >/dev/null
 sudo rm -f /usr/local/bin/mkmicrotape 2>&1 >/dev/null
 sudo rm -f /usr/local/bin/ovlload 2>&1 >/dev/null
 sudo rm -f /usr/local/bin/mtp 2>&1 >/dev/null
+sudo rm -f /usr/local/bin/fstool 2>&1 >/dev/null
+sudo rm -f /usr/local/bin/asr33tape 2>&1 >/dev/null
+sudo rm -f /usr/local/bin/ovlload 2>&1 >/dev/null
+sudo rm -f /usr/local/bin/docviewer 2>&1 >/dev/null
+sudo rm -f /usr/local/bin/mactoam1 2>&1 >/dev/null
 sudo rm -f /usr/local/bin/p7sim 2>&1 >/dev/null
 sudo rm -f /usr/local/bin/monas 2>&1 >/dev/null
 sudo rm -f /usr/local/bin/pdp1central 2>&1 >/dev/null

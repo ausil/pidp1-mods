@@ -5,7 +5,7 @@
  *
  * Usage: drumlist [-i imagefile] [file.ovl ...]
  * where:
- * i - use the given name for the drum image instead of '/opt/pidp1-mods/pdp23drum'
+ * i - use the given name for the drum image instead of '/var/lib/pidp1-mods/pdp23drum'
  * file.ovl - name each overlay of the file on its track, and say whether the drum
  *            holds it, as ovlload -c would
  *
@@ -35,8 +35,9 @@
 #include <sys/stat.h>
 
 #include "ovlfile.h"
+#include "pidp1_paths.h"
 
-#define DEFAULT_IMAGE "/opt/pidp1-mods/pdp23drum"
+#define DEFAULT_IMAGE PIDP1_DRUMFILE
 #define WORDS_PER_TRACK 4096
 #define ADVENTURE_LAST_TRACK 22
 

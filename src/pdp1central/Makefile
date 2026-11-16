@@ -7,7 +7,7 @@ CC=gcc
 NKFLAGS=-DNK_INCLUDE_FIXED_TYPES -DNK_INCLUDE_STANDARD_IO -DNK_INCLUDE_STANDARD_VARARGS \
 	-DNK_INCLUDE_DEFAULT_ALLOCATOR -DNK_INCLUDE_VERTEX_BUFFER_OUTPUT -DNK_INCLUDE_FONT_BAKING \
 	-DNK_INCLUDE_DEFAULT_FONT
-CFLAGS=-O2 -g -Wall -Wextra -D_GNU_SOURCE `sdl2-config --cflags`
+CFLAGS=-O2 -g -Wall -Wextra -D_GNU_SOURCE -I../common `sdl2-config --cflags`
 LIBS=`sdl2-config --libs` -lm
 
 CORE=procs.o cmdport.o child.o conffile.o schema.o mtlist.o library.o

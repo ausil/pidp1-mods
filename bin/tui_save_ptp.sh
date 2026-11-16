@@ -6,8 +6,8 @@
 # 06-Oct-26 wje (Claude) save through save_ptp.sh, which finds who holds the tape; a name
 #    already in tapes/ was sent as tapes/YYYYYYY; ask before overwriting
 
-root="${PIDP1_ROOT:-/opt/pidp1-mods}"
-DEFAULT_DIR="$root/tapes"
+. "${PIDP1_ENV:-$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")/pidp1-env.sh}"
+DEFAULT_DIR="$PIDP1_TAPES"
 echo "Default directory is: $DEFAULT_DIR"
 
 # Prompt the user for a filename (can be just a name or full path)

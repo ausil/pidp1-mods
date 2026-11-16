@@ -1,4 +1,4 @@
-CC=gcc -O2
+CC=gcc -O2 -I../../src/common
 #CC=gcc -O0 -g
 
 # ovlload compiles the shared link client, tape reader and .ovl reader from UTILLIBS straight

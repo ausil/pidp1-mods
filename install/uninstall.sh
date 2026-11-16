@@ -38,6 +38,11 @@ sudo rm -f /usr/local/bin/pdp1central
 sudo rm -f /usr/local/bin/disassemble
 sudo rm -f /usr/local/bin/fastload
 sudo rm -f /usr/local/bin/mtp
+sudo rm -f /usr/local/bin/fstool
+sudo rm -f /usr/local/bin/asr33tape
+sudo rm -f /usr/local/bin/ovlload
+sudo rm -f /usr/local/bin/docviewer
+sudo rm -f /usr/local/bin/mactoam1
 sudo rm -f /usr/local/bin/mkmicrotape
 sudo rm -f /usr/local/bin/t30dpy
 
@@ -64,6 +69,16 @@ rm -f $HOME/Desktop/ptp.desktop  >/dev/null 2>&1
 rm -f $HOME/Desktop/audioOn.desktop >/dev/null 2>&1
 rm -f $HOME/Desktop/audioOff.desktop >/dev/null 2>&1
 rm -f $HOME/Desktop/pdp1central.desktop >/dev/null 2>&1
+
+# The hicolor icons install.sh copied for the desktop entries' theme icon names
+rm -f $HOME/.local/share/icons/hicolor/scalable/apps/pdp1.svg 2>/dev/null
+rm -f $HOME/.local/share/icons/hicolor/scalable/apps/pdp1central.svg 2>/dev/null
+rm -f $HOME/.local/share/icons/hicolor/scalable/apps/pdp1control.svg 2>/dev/null
+rm -f $HOME/.local/share/icons/hicolor/scalable/apps/pidp1-ptp.svg 2>/dev/null
+rm -f $HOME/.local/share/icons/hicolor/scalable/apps/pidp1-ptr.svg 2>/dev/null
+rm -f $HOME/.local/share/icons/hicolor/scalable/apps/t30dpy.svg 2>/dev/null
+rm -f $HOME/.local/share/icons/hicolor/scalable/apps/soroban.svg 2>/dev/null
+gtk-update-icon-cache -qf $HOME/.local/share/icons/hicolor 2>/dev/null
 
 # wallpaper
 echo Attempting to reset your wallpaper.

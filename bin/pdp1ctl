@@ -1,6 +1,15 @@
 #!/bin/bash
 # sucks that we need bash here
-PDP1_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/.."
+#
+# Feed pdp1ctl a boot configuration, one line at a time: pdp1 should be able to handle
+# multiple lines itself, but it cannot.
+#
+# PDP1_DIR is the token the bootcfg/*.cfg files use for the directory the tapes live in,
+# which is the writable state directory, not the read-only data directory: a user drops
+# a new .rim in there and boots it.
+. "${PIDP1_ENV:-$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")/pidp1-env.sh}"
+
+PDP1_DIR="$PIDP1_STATEDIR"
 # a bit crappy. pdp1 should be able to handle multiple lines
 while IFS= read -r line; do
 	echo "$line" | sed "s:PDP1_DIR:${PDP1_DIR}:g" | ncat -w 1 localhost 1040 

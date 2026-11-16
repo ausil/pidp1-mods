@@ -4,6 +4,7 @@
 
 #include "ad1link.h"
 #include "target.h"
+#include "pidp1_paths.h"
 
 #define VERSION "2.9 22-Oct-2026"
 
@@ -36,7 +37,7 @@
 #define LOADSTOP -2
 
 // The drum file load writes a program's overlays to, unless -i names another.
-#define DRUMFILE "/opt/pidp1-mods/pdp23drum"
+#define DRUMFILE PIDP1_DRUMFILE
 extern char *drumFileP;
 
 // Flags used in Directives

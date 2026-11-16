@@ -57,6 +57,7 @@
 #endif
 #include <SDL2/SDL.h>
 #include "penCursor.h"
+#include "pidp1_paths.h"
 
 #define MINSIZE 256             // window can't be smaller than this
 #define READBUFSIZE 512         // size of the buffer we read from the server into, bytes
@@ -2251,7 +2252,7 @@ char line[256];
 
     if( !(fP = getFile("~/.t30dpy.config")) )
     {
-        if( !(fP = getFile("/opt/pidp1-mods/t30dpy.config")) )
+        if( !(fP = getFile(PIDP1_T30DCONFIG)) )
         {
             return;         // no config file
         }

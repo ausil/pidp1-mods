@@ -56,6 +56,7 @@
 #include "pdp1.h"
 #define NOTIOTH
 #include "dynamicIots.h"
+#include "pidp1_paths.h"
 
 static int stopped = 1;         // assume we are halted initially
 static IotEntry handles[64];
@@ -500,7 +501,7 @@ char fname[256];
 
     entryP = &handles[dev];
 
-    sprintf(fname,"/opt/pidp1-mods/IOTs/IOT_%o.so", dev);
+    sprintf(fname, PIDP1_IOTDIR "/IOT_%o.so", dev);
 
     if( !(entryP->dlHandleP = dlopen(fname, RTLD_LAZY)) )
     {

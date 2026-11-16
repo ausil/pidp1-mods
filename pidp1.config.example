@@ -89,7 +89,7 @@ twoscreens=off
 aperture=22
 
 # The unified gui of course needs to be able to find the config tile for this to work.
-# If running on a remote system, copy the config file to /opt/pidp1-mods on that system,
+# If running on a remote system, copy the config file to /etc/pidp1-mods on that system,
 # or use the command line flags if available.
 guilightpen=yes
 

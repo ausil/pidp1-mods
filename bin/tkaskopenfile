@@ -1,8 +1,16 @@
-#!/bin/python3
+#!/usr/bin/python3
+#
+# Ask for the name of an existing file, printing it on stdout: pdp1central's file chooser
+# when the dialogs are the Tk ones rather than zenity's. The starting directory is the tape
+# library, which pdp1control passes down through the environment (see bin/pidp1-env.sh).
 
+import os
 import tkinter
 import tkinter.filedialog
 
-file = tkinter.filedialog.askopenfilename(initialdir='/opt/pidp1-mods/tapes')
+tapes = os.environ.get('PIDP1_TAPES') or os.path.join(
+    os.environ.get('PIDP1_STATEDIR', '/var/lib/pidp1-mods'), 'tapes')
+
+file = tkinter.filedialog.askopenfilename(initialdir=tapes)
 if file != ():
 	print(file)

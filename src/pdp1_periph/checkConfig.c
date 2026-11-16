@@ -1,7 +1,8 @@
-// Check the /opt/pidp1-mods/pidp1.config file for a setting
+// Check the /etc/pidp1-mods/pidp1.config file for a setting
 #include <stdio.h>
 #include <stdbool.h>
 #include <string.h>
+#include "pidp1_paths.h"
 
 bool getConfig(char *nameP, char *resultP);
 
@@ -37,7 +38,7 @@ char answer[64];
     if( !confFP )
     {
         // Not open yet, do so
-        if( !(confFP = fopen("/opt/pidp1-mods/pidp1.config", "r")) )
+        if( !(confFP = fopen(PIDP1_CONFIG, "r")) )
         {
             return(0);
         }

@@ -163,92 +163,48 @@ done
 
 # make required binaries
 # =============================================================================
+# The list of things to build lives in install/build-all.sh only, so the build here and
+# the build that produces the precompiled binary drop can never disagree.
 
 while true; do
     echo
-    read -p "Make required PiDP-1 binaries? " yn
+    read -p "Compile the PiDP-1 binaries from (C)ource, unpack the (P)recompiled ones, or (S)kip? " yn
     case $yn in
-        [Yy]* )
-		make -C $INSTALLDIR/src/panel_pidp1 all 	# panel driver
-		make -C $INSTALLDIR/src/pdp1 	# simulator
-		make -C $INSTALLDIR/src/scanpf 			# returns sense switches
-		make -C $INSTALLDIR/src/tapevis	# visualize a rim tape
-		make -C $INSTALLDIR/src/pidp1_test 		# hardware test program
-		make -C $INSTALLDIR/src/pdp1_periph		# unified peripherals
-		make -C $INSTALLDIR/src/pdp1central		# pdp1central, the desktop control app
-		make -C $INSTALLDIR/IOTs clean			# dynamic IOTs, be sure no leftovers
-		make -C $INSTALLDIR/IOTs all			# dynamic IOTs, all of them
-		
-		# this makes the virtual pdp-1 panel, used if no PiDP-1 hardware is attached:
-		make -C $INSTALLDIR/src/vpanel_pdp1 	# panel driver
+        [Cc]* )
+            $INSTALLDIR/install/build-all.sh
 
-                # The am1 macro assembler, also installs fastload
-		make -C $INSTALLDIR/Tools/AM1 install
-		make -C $INSTALLDIR/Tools/AM1 clean
-                # The ad1 symbolic debugger
-		make -C $INSTALLDIR/Tools/AD1 install
-		make -C $INSTALLDIR/Tools/AD1 clean
-                # The drum tools
-		make -C $INSTALLDIR/Tools/Drumupdater install
-		make -C $INSTALLDIR/Tools/Drumupdater clean
-                # The microtape tools
-		make -C $INSTALLDIR/Tools/Utils install
-		make -C $INSTALLDIR/Tools/Utils clean
-                # The overlay tools
-		make -C $INSTALLDIR/Tools/Ovlload install
-		make -C $INSTALLDIR/Tools/Ovlload clean
-
-        # The new Type 30 display, either the SDL2 or SDL3 version
-        if dpkg-query -W -f='${Status}' libsdl3-dev 2>/dev/null | grep -q "ok installed"; then
-            echo "SDL3 found, installing t30dpy3 as t30dpy."
-            make -C $INSTALLDIR/Tools/T30dpy installdpy3
-        else
-            echo "No SDL3 library is present, installing SDL2 t30dpy."
-            make -C $INSTALLDIR/Tools/T30dpy install
-        fi
-		make -C $INSTALLDIR/Tools/T30dpy clean
-
-		# the macro1_1 cross-compiler:
-		gcc $INSTALLDIR/src/macro/macro1_1.c -o $INSTALLDIR/src/macro/macro1_1
-		# the usb_paper_tape tool:
-		make -C $INSTALLDIR/src/usb_paper_tape
-		# The disassembler been renamed, get rid of the old one
-		test -f $INSTALLDIR/bin/disassemble_tape && rm $INSTALLDIR/bin/disassemble_tape
-		test -f $INSTALLDIR/bin/disassemble_mem && rm $INSTALLDIR/bin/disassemble_mem
-		test -f /usr/local/bin/disassemble_tape && rm /usr/local/bin/disassemble_tape
-		make -C $INSTALLDIR/Tools install
-            
-		echo Setting required access privileges to pidp1 simulator
-        # make sure pidp1 panel driver has the right privileges
-        # to access GPIO with root privileges:
-        # sudo chmod +s $INSTALLDIR/src/panel_pidp1
-        # to run as a RT thread:
-        # The old panel is no longer built or installed
-        # sudo setcap cap_sys_nice+ep $INSTALLDIR/src/panel_pidp1/panel_pidp1
-        # newpanel does not require running as an RT thread, but it has the option of doing so
-        sudo chmod +s $INSTALLDIR/src/panel_pidp1/newpanel
-        sudo setcap cap_sys_nice+ep $INSTALLDIR/src/panel_pidp1/newpanel
-
-        ln -sf $INSTALLDIR/src/macro/macro1_1 $INSTALLDIR/bin/macro1_1
-        ln -sf $INSTALLDIR/src/vpanel_pdp1/panel_pdp1 $INSTALLDIR/bin/vpanel_pdp1
-        ln -sf $INSTALLDIR/src/pdp1/pdp1 $INSTALLDIR/bin/pdp1
-        ln -sf $INSTALLDIR/src/pdp1_periph/pdp1_periphES $INSTALLDIR/bin/pdp1_periphES
-        ln -sf $INSTALLDIR/src/pdp1central/pdp1central $INSTALLDIR/bin/pdp1central
-        ln -sf $INSTALLDIR/src/usb_paper_tape/pdp1_usb_monitor $INSTALLDIR/bin/pdp1_usb_monitor
-        ln -sf $INSTALLDIR/src/pidp1_test/pidp1_test $INSTALLDIR/bin/pidp1_test
-        ln -sf $INSTALLDIR/src/scanpf/scanpf $INSTALLDIR/bin/scanpf
-        ln -sf $INSTALLDIR/src/tapevis/tapevis $INSTALLDIR/bin/tapevis
-        ln -sf $INSTALLDIR/src/panel_pidp1/newpanel $INSTALLDIR/bin/panel_pidp1
-        echo Done.
-		break
-		;;
-        [Nn]* ) 
-            echo Did not compile PiDP-1 programs.
-	    break
+            echo Setting required access privileges to pidp1 simulator
+            # newpanel does not need to run as an RT thread, but it can; it also needs
+            # to reach the GPIO pins.
+            sudo chmod +s $INSTALLDIR/bin/panel_pidp1
+            sudo setcap cap_sys_nice+ep $INSTALLDIR/bin/panel_pidp1
+            echo Done.
+            break
             ;;
-        * ) echo "Please answer yes or no.";;
+        [Pp]* )
+            arch=$(uname -m)
+            drop=$INSTALLDIR/bin/binaries-for-$arch.tar.gz
+            if [ ! -f "$drop" ]; then
+                echo "There is no precompiled binary drop for $arch in $INSTALLDIR/bin,"
+                echo "so there is nothing to unpack. Answer C to compile from source."
+                break
+            fi
+            echo "Unpacking $drop into $INSTALLDIR"
+            # the drop holds bin/* and the IOTs/*.so plugins the emulator dlopen()s
+            tar -xzf $drop -C $INSTALLDIR
+            sudo chmod +s $INSTALLDIR/bin/panel_pidp1
+            sudo setcap cap_sys_nice+ep $INSTALLDIR/bin/panel_pidp1
+            echo Done.
+            break
+            ;;
+        [Ss]* )
+            echo Did not build the PiDP-1 programs, nothing was changed.
+            break
+            ;;
+        * ) echo "Please answer C, P or S.";;
     esac
 done
+
 
 # Install pidp1 commands
 # =============================================================================
@@ -274,6 +230,8 @@ while true; do
 	    sudo ln -sf $INSTALLDIR/bin/macro1_1 /usr/local/bin/macro1_1
 	    sudo ln -sf $INSTALLDIR/bin/macro1_1 /usr/local/bin/macro1
 	    sudo ln -sf $INSTALLDIR/bin/disassemble /usr/local/bin/disassemble
+	    sudo ln -sf $INSTALLDIR/bin/docviewer /usr/local/bin/docviewer
+	    sudo ln -sf $INSTALLDIR/bin/mactoam1 /usr/local/bin/mactoam1
 	    #
 	    sudo ln -sf $INSTALLDIR/bin/am1 /usr/local/bin/am1
 	    sudo ln -sf $INSTALLDIR/bin/fastload /usr/local/bin/fastload
@@ -454,7 +412,6 @@ while true; do
             cp $INSTALLDIR/install/tty.desktop /home/$usr/Desktop/
             cp $INSTALLDIR/install/pdp1control.desktop /home/$usr/Desktop/
             cp $INSTALLDIR/install/pdp1central.desktop /home/$usr/Desktop/
-            cp $INSTALLDIR/install/type30.desktop /home/$usr/Desktop/
             cp $INSTALLDIR/install/t30dpy.desktop /home/$usr/Desktop/
             cp $INSTALLDIR/install/ptr.desktop /home/$usr/Desktop/
             cp $INSTALLDIR/install/ptp.desktop /home/$usr/Desktop/
@@ -471,6 +428,21 @@ while true; do
             chmod u+x /home/$usr/Desktop/ptp.desktop
             chmod u+x /home/$usr/Desktop/audioOn.desktop
             chmod u+x /home/$usr/Desktop/audioOff.desktop
+
+            # The desktop entries name theme icons (Icon=pdp1 etc) rather than absolute
+            # paths, so they work from the desktop, the menu and the RPM alike. The RPM
+            # ships them into the system icon theme; a checkout install puts the same
+            # svg files into this user's hicolor theme under the names used.
+            icondir="$HOME/.local/share/icons/hicolor/scalable/apps"
+            mkdir -p "$icondir"
+            cp $INSTALLDIR/install/pdp1icon2.svg "$icondir/pdp1.svg"
+            cp $INSTALLDIR/install/pdp1central.svg "$icondir/"
+            cp $INSTALLDIR/install/pdp1control.svg "$icondir/"
+            cp $INSTALLDIR/install/t30dpy.svg "$icondir/"
+            cp $INSTALLDIR/install/ptr-icon.svg "$icondir/pidp1-ptp.svg"
+            cp $INSTALLDIR/install/ptr-icon.svg "$icondir/pidp1-ptr.svg"
+            cp $INSTALLDIR/install/soroban-icon2.svg "$icondir/soroban.svg"
+            gtk-update-icon-cache -qf "$HOME/.local/share/icons/hicolor" 2>/dev/null
 
             #make pcmanf run on double click, change its config file
             config_file="/home/$usr/.config/libfm/libfm.conf"

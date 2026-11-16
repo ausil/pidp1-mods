@@ -59,8 +59,9 @@
 
 #include "core.h"
 #include "style.h"
+#include "pidp1_paths.h"
 
-#define DEFAULT_ROOT "/opt/pidp1-mods"
+#define DEFAULT_ROOT PIDP1_DATADIR
 #define EMU_PORT 1040           // the emulator's command port
 #define FRONT_PORT 1050         // the running front end's command port
 #define LOG_LINES 500
@@ -347,12 +348,56 @@ va_list ap;
     appLog("%s", statusNote);
 }
 
-// Build <root>/<tail> into outP.
+// Build <dir>/<tail> into outP.
 // Returns false if the path does not fit.
+static bool
+pathJoin(char *outP, const char *dirP, const char *tailP)
+{
+    return( snprintf(outP, PATH_MAX, "%s/%s", dirP, tailP) < PATH_MAX );
+}
+
+// Build <root>/<tail> into outP: the pieces that ship inside the read-only tree, which is
+// what -r names.
 static bool
 rootJoin(char *outP, const char *tailP)
 {
-    return( snprintf(outP, PATH_MAX, "%s/%s", rootPath, tailP) < PATH_MAX );
+    return( pathJoin(outP, rootPath, tailP) );
+}
+
+// An installed location the environment may point somewhere else, which is how a build tree
+// and bin/pidp1-env.sh keep the GUI and the scripts looking at the same files.
+static const char *
+envDir(const char *nameP, const char *dfltP)
+{
+const char *envP;
+
+    if( (envP = getenv(nameP)) && *envP )
+    {
+        return(envP);
+    }
+    return(dfltP);
+}
+
+// Where this user's pdp1control start-time choices are kept, the same file the script writes:
+// bin/pidp1-env.sh says where when it started us, otherwise the usual per-user place.
+static bool
+userControlPath(char *outP, size_t len)
+{
+const char *envP;
+
+    if( (envP = getenv("PIDP1_CONTROL_CONFIG")) && *envP )
+    {
+        return( snprintf(outP, len, "%s", envP) < (int)len );
+    }
+    if( (envP = getenv("XDG_CONFIG_HOME")) && *envP )
+    {
+        return( snprintf(outP, len, "%s/pidp1-mods/pdp1control.config", envP) < (int)len );
+    }
+    if( (envP = getenv("HOME")) && *envP )
+    {
+        return( snprintf(outP, len, "%s/.config/pidp1-mods/pdp1control.config", envP) < (int)len );
+    }
+    return( snprintf(outP, len, "%s/pdp1control.config", PIDP1_SYSCONFDIR) < (int)len );
 }
 
 // Whether two values from confGet differ, where NULL means no active line.
@@ -4169,6 +4214,7 @@ static bool
 setPaths(const char *rootP, const char *schemaArgP)
 {
 bool ok;
+const char *confDirP, *stateDirP, *binDirP;
 
     if( strlen(rootP) >= (PATH_MAX - 64) )
     {
@@ -4176,25 +4222,34 @@ bool ok;
     }
 
     strcpy(rootPath, rootP);
-    ok = (rootJoin(configPath, "pidp1.config") &&
+
+    // Installed, these are three different places: -r names the read-only tree, the site's
+    // configuration is in PIDP1_SYSCONFDIR, and what the machine writes (the drum image, the
+    // mounted tapes) is in PIDP1_STATEDIR. An uninstalled build tree has them all under -r,
+    // which is also what bin/pidp1-env.sh exports, so both find the same files.
+    confDirP = envDir("PIDP1_SYSCONFDIR", PIDP1_SYSCONFDIR);
+    stateDirP = envDir("PIDP1_STATEDIR", PIDP1_STATEDIR);
+    binDirP = envDir("PIDP1_BINDIR", PIDP1_BINDIR);
+
+    ok = (pathJoin(configPath, confDirP, "pidp1.config") &&
         rootJoin(examplePath, "pidp1.config.example") &&
-        rootJoin(controlPath, "pdp1control.config") &&
+        userControlPath(controlPath, sizeof(controlPath)) &&
         rootJoin(scriptPath, "bin/pdp1control.sh") &&
         rootJoin(askPath, "bin/askfile") &&
-        rootJoin(fastloadPath, "bin/fastload") &&
-        rootJoin(ovlloadPath, "bin/ovlload") &&
-        rootJoin(drumPath, "pdp23drum") &&
-        rootJoin(drumBakPath, "pdp23drum.bak") &&
+        pathJoin(fastloadPath, binDirP, "fastload") &&
+        pathJoin(ovlloadPath, binDirP, "ovlload") &&
+        pathJoin(drumPath, stateDirP, "pdp23drum") &&
+        pathJoin(drumBakPath, stateDirP, "pdp23drum.bak") &&
         rootJoin(drumsDir, "Drums") &&
-        rootJoin(drumlistPath, "bin/drumlist") &&
+        pathJoin(drumlistPath, binDirP, "drumlist") &&
         rootJoin(savePunchPath, "bin/save_ptp.sh") &&
-        rootJoin(mtpPath, "bin/mtp") &&
-        rootJoin(t30dpyPath, "bin/t30dpy") &&
-        rootJoin(mtListPath, "microtapes.txt") &&
+        pathJoin(mtpPath, binDirP, "mtp") &&
+        pathJoin(t30dpyPath, binDirP, "t30dpy") &&
+        pathJoin(mtListPath, confDirP, "microtapes.txt") &&
         rootJoin(microtapeDir, "Microtapes") &&
-        rootJoin(tapesDir, "tapes") &&
+        pathJoin(tapesDir, stateDirP, "tapes") &&
         rootJoin(fontPath, "src/pdp1_periph/DejaVuSansMono.ttf") &&
-        rootJoin(stylePath, "pdp1central.config"));
+        pathJoin(stylePath, confDirP, "pdp1central.config"));
     if( schemaArgP )
     {
         ok = ok && (snprintf(schemaPath, sizeof(schemaPath), "%s", schemaArgP) < (int)sizeof(schemaPath));
@@ -4223,7 +4278,7 @@ int opt, width, height, y;
 unsigned actionSeq;     // statusSeq when the current click or key press began
 bool actionEnded;       // a click or key press ended in this frame
 
-    rootArgP = DEFAULT_ROOT;
+    rootArgP = envDir("PIDP1_ROOT", DEFAULT_ROOT);
     schemaArgP = NULL;
     while( (opt = getopt(argc, argv, "r:s:")) != -1 )
     {

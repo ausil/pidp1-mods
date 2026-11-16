@@ -1,7 +1,11 @@
 #!/bin/bash
+#
+# Mount a paper tape on the reader from a terminal, no desktop needed: pick it from a menu
+# and hand the emulator the absolute path.
+. "${PIDP1_ENV:-$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")/pidp1-env.sh}"
 
 # Directory to list files from
-SUBDIR="/opt/pidp1-mods/tapes"
+SUBDIR="$PIDP1_TAPES"
 
 # Check if the directory exists
 if [[ ! -d "$SUBDIR" ]]; then
@@ -33,4 +37,3 @@ select FILE in "${FILES[@]}"; do
 done
 echo "r $FILE" 
 echo "r $FILE" | ncat -w 1 localhost 1050
-

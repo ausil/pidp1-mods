@@ -1,17 +1,17 @@
 # microtapes.txt -- the tapes on the Type 550 Microtape drives. Copy this file to
-# /opt/pidp1-mods/microtapes.txt and edit it.
+# /etc/pidp1-mods/microtapes.txt (the tree root in an unpacked checkout) and edit it.
 # See Docs/UsingType550Microtape.md.
 #
 # One line per drive:  <drive> <image>[,locked]
 #   drive    1-8, in decimal (drive 8 is 10 in the mse unit field)
 #   image    the tape image file. A path that does not start with / is relative to
-#            /opt/pidp1-mods/Microtapes.
+#            /usr/share/pidp1-mods/Microtapes (the tree root in an unpacked checkout).
 #            It runs to the end of the line and may contain spaces.
 #   ,locked  the WRITE LOCK switch: the drive can be read but not written or erased.
 #            A read-only image file is always mounted locked.
 #
 # A missing image is created as a blank tape unless the line is locked.
-# Its directory must already exist, /opt/pidp1-mods/Microtapes will already be created.
+# Its directory must already exist; /usr/share/pidp1-mods/Microtapes ships with the package.
 # A drive with no line has no tape, mlc on it gives tape unable.
 # Blank lines and lines starting with # are ignored.
 #

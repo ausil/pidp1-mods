@@ -1,4 +1,4 @@
-CC=gcc $(CCFLAGS) -I$(UTILLIBS)
+CC=gcc $(CCFLAGS) -I$(UTILLIBS) -I$(COMMON)
 CCFLAGS= -O3 -s
 #CCFLAGS= -g
 #BISONFLAGS=-Wcounterexamples
@@ -9,6 +9,8 @@ BISONFLAGS=
 # Each into this directory, no object files are created there.
 # The link's wire format is the emulator's ad1proto.h.
 UTILLIBS=../UtilLibs
+# pidp1_paths.h, the installed locations
+COMMON=../../src/common
 
 OBJS=am1.o permsyms.def.o symtab.o lex.yy.o y.tab.o parsefns.o eval.o \
         maccodegen.o bincodegen.o listcodegen.o testcodegen.o listSymtab.o optimizer.o \

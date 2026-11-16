@@ -1,6 +1,6 @@
 /*
  * This is an implementation of the PDP-1 Type 23 Parallel Drum.
- * The drum data is stored in '/opt/pidp1-mods/pdp23drum' and is a binary image of the drum,
+ * The drum data is stored in '/var/lib/pidp1-mods/pdp23drum' and is a binary image of the drum,
  * stored as 18 bit pdp-1 words per 32 bit image word.
  * The drum also uses IOTs 62 and 63, which alias to this one.
  * While the emulator runs the drum is a copy of the file in memory: a transfer reads and writes
@@ -65,6 +65,7 @@
 
 //#define DOLOGGING
 #include "iotLogger.h"
+#include "pidp1_paths.h"
 #define LOG_START 0
 #define LOG_IOT 0
 #define LOG_POLL 0
@@ -89,7 +90,7 @@
 // This was actually a parameter set via pot according to the manual.
 #define SETTLE_NS 250000ULL
 
-#define DRUMFILE "/opt/pidp1-mods/pdp23drum"
+#define DRUMFILE PIDP1_DRUMFILE
 #define DRUMADDRTOSEEK(field, offset) ((((field) * 4096) + (offset)) * (int)sizeof(Word))
 #define DRUMFIELDS 32                       // dia and dwc carry a 5-bit field
 #define DRUMWORDS (DRUMFIELDS * 4096)

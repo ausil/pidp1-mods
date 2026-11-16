@@ -4,9 +4,10 @@ ifeq ($(origin CC),default)
 CC = gcc
 endif
 CFLAGS ?= -O2 -Wall -Wextra -std=gnu11
+CPPFLAGS ?= -I../../../src/common
 
 sketchplot: sketchplot.c
-	$(CC) $(CFLAGS) -o sketchplot sketchplot.c -lz -lm
+	$(CC) $(CFLAGS) $(CPPFLAGS) -o sketchplot sketchplot.c -lz -lm
 	cp sketchplot ..
 
 clean:

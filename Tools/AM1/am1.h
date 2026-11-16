@@ -7,12 +7,13 @@
 #include <stdint.h>
 
 #include "symtab.h"
+#include "pidp1_paths.h"
 
 #define AM1VERSION "am1 v5.10 12-Nov-2026"
 #define AM1SHORTVERSION "am1 v5.10"
 #define SYMFILEVERSION "V3"             // used for import to check proper version, must match listSymtab.c
 
-#define AM1INCDIR "/opt/pidp1-mods/Am1Includes"
+#define AM1INCDIR PIDP1_AM1INCDIR
 
 #define WRDMASK 0777777 // PDP-1 word, 18 bits
 #define ADDRMASK 07777  // PDP-1 address, 12 bits

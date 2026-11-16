@@ -17,7 +17,7 @@ with `m1cmp.py`.
     ./run_tests.sh -w ~/mtoatest        # where everything is written
 
 Without `-m` the converter is built from `Tools/MtoA` into the work
-directory. `-a` names the am1; the default is `/opt/pidp1-mods/bin/am1`. The
+directory. `-a` names the am1; the default is this checkout's `bin/am1`. The
 work directory defaults to `./mtoatest` under the current directory: macro1
 and am1 write their outputs into their working directory, so run it from
 somewhere other than the checkout, or give `-w`. The checkout itself is only

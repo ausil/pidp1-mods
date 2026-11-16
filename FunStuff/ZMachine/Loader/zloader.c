@@ -45,10 +45,11 @@
 #include <string.h>
 
 #include "zloader.h"
+#include "pidp1_paths.h"
 
 // The live drum the Type 23 plugin pair reads (IOTs/Type23Drum/IOT_61.c's
 // own DRUMFILE). The -i option overrides it.
-#define DEFAULT_DRUM "/opt/pidp1-mods/pdp23drum"
+#define DEFAULT_DRUM PIDP1_DRUMFILE
 
 // The story file, and what its header says.
 static uint8_t  *g_storyP;              // the whole story file in memory

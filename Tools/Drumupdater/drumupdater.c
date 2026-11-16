@@ -39,10 +39,11 @@
 #include <fcntl.h>
 #include <stdbool.h>
 #include <string.h>
+#include "pidp1_paths.h"
 
 #define DIAGNOSTIC(args...) if( diagnostics ) {printf(args); printf("\n");}
 
-#define DEFAULT_IMAGE "/opt/pidp1-mods/pdp23drum"
+#define DEFAULT_IMAGE PIDP1_DRUMFILE
 
 // Instructions have a 5 bit opcode followed by a 1 bit indirect marker as the high 6 bits of a word
 #define OPERATION(x)    (x >> 12)

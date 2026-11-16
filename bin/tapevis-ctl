@@ -1,6 +1,11 @@
 #!/bin/bash
 # sucks that we need bash here
-PDP1_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/../tapes"
+#
+# Send tapevis (the tape reader and punch window) a command, expanding the PDP1_DIR token
+# the boot configurations use for the tape library.
+. "${PIDP1_ENV:-$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")/pidp1-env.sh}"
+
+PDP1_DIR="$PIDP1_TAPES"
 # a bit crappy. pdp1 should be able to handle multiple lines
 #while IFS= read -r line; do
 echo "$1" | sed "s:PDP1_DIR:${PDP1_DIR}:g" 

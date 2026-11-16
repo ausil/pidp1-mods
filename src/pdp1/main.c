@@ -101,6 +101,7 @@
 
 //#define DOLOGGING
 #include "logger.h"
+#include "pidp1_paths.h"
 // Set desired log type to 1 to enable output assuming logging is defined.
 #define LOG_WATCH 0
 #define LOG_BREAK 0
@@ -108,7 +109,7 @@
 
 // If present, will set the startup state of audio, etc.
 // See the distributed one for all settings.
-#define CONFIG_FILE "/opt/pidp1-mods/pidp1.config"
+#define CONFIG_FILE PIDP1_CONFIG
 
 #define Edge(sw) (pdp->sw && !prev_##sw)
 

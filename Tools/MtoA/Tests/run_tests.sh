@@ -3,7 +3,7 @@
 #
 # Usage: run_tests.sh [-m mactoam1] [-a am1] [-w workdir] [t1|t2|t3|control|all]...
 #   -m  the converter to test; default: built from this checkout's Tools/MtoA into the work dir
-#   -a  the am1 to use; default /opt/pidp1-mods/bin/am1
+#   -a  the am1 to use; default <this checkout>/bin/am1
 #   -w  work directory; default ./mtoatest under the current directory. Everything the run
 #       writes goes there; the checkout is only read.
 #   t1       the corpus, corpus.txt
@@ -20,7 +20,7 @@ set -u
 HERE=$(cd "$(dirname "$0")" && pwd)
 ROOT=$(cd "$HERE/../../.." && pwd)
 MTOA=""
-AM1=/opt/pidp1-mods/bin/am1
+AM1=$ROOT/bin/am1
 WORK=$PWD/mtoatest
 while getopts "m:a:w:" opt; do
     case $opt in

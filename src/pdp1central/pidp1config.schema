@@ -80,7 +80,7 @@ microtapesbs|Devices|int|0..15|2|Microtape|reload||The Type 550 microtape's sequ
 
 # Plotter features
 plottermodel|Devices|choice|560,563,565|560|Plotter|reload||The plotter type, CalComp 560, 563, or 565
-plotterfile|Devices|text||plotter.png|Plotter|reload||The filename to save a plot to, %d numbers sheets, relative to /opt/pidp1-mods unless /path
+plotterfile|Devices|text||plotter.png|Plotter|reload||The filename to save a plot to, %d numbers sheets, relative to the PiDP-1 state directory unless /path
 plotterstep|Devices|int|0..100000|5000|Plotter|reload||The time in microsecs a pen move takes
 plotterpendown|Devices|int|0..1000|100|Plotter|reload||The time in millisecs a pen down takes
 plotterpenup|Devices|int|0..1000|100|Plotter|reload||The time in millisecs pen up takes

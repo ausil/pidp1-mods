@@ -73,8 +73,9 @@
 #include "configuration.h"
 #include "gpiolib.h"
 #include "panel_pidp1.h"
+#include "pidp1_paths.h"
 
-#define CONFIG_FILE "/opt/pidp1-mods/pidp1.config"
+#define CONFIG_FILE PIDP1_CONFIG
 
 // The sleep time in panelthread after updating the light and switch states in shared memory.
 #define UPDATEDELAY 100
@@ -1140,7 +1141,7 @@ initGPIO(void)
     return(0);
 }
 
-// Get our settings from the common config file, /opt/pidp1-mods/pidp1.config
+// Get our settings from the common config file, /etc/pidp1-mods/pidp1.config
 void
 loadConfig()
 {

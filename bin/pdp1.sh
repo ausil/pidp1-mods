@@ -1,4 +1,11 @@
 #!/bin/bash
+#
+# pdp1: with no arguments, bring the user into the running simulator's screen session
+# (Ctrl-A d leaves it again); with one, start a front-end program beside it.
+#
+# 15-Nov-2026 wje locations from bin/pidp1-env.sh, and the Teletype's path is a setting.
+
+. "${PIDP1_ENV:-$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")/pidp1-env.sh}"
 
 if [ $# -eq 0 ]; then
 
@@ -11,20 +18,26 @@ if [ $# -eq 0 ]; then
 else
 	case $1 in
 		con)
-			//nohup /opt/pidp10/bin/sty > /dev/null 2>&1 &
-			nohup /opt/pidp10/bin/sty -e telnet localhost 1025 > /dev/null 2>&1 &
+			# The noisy Teletype model 33 is the PiDP-10 project's 'sty', a separate
+			# install; PIDP10_STY points at it. Without it, use 'pdp1 soroban'.
+			sty="${PIDP10_STY:-/opt/pidp10/bin/sty}"
+			if [ ! -x "$sty" ]; then
+				echo "no Teletype emulator at $sty: set PIDP10_STY, or use pdp1 soroban" >&2
+				exit 1
+			fi
+			nohup "$sty" -e telnet localhost 1025 > /dev/null 2>&1 &
 			;;
 		soroban)
 			nohup lxterminal --command="telnet localhost 1041" > /dev/null 2>&1 &
 			;;
 		ptr)
-			nohup /opt/pidp1-mods/bin/load_ptr.sh > /dev/null 2>&1 &
+			nohup "$PIDP1_SCRIPTS/load_ptr.sh" > /dev/null 2>&1 &
 			;;
 		ptp)
-			nohup /opt/pidp1-mods/bin/save_ptp.sh > /dev/null 2>&1 &
+			nohup "$PIDP1_SCRIPTS/save_ptp.sh" > /dev/null 2>&1 &
 			;;
 		tape)
-			nohup /opt/pidp1-mods/bin/tapevis > /dev/null 2>&1 &
+			nohup "$PIDP1_BINDIR/tapevis" > /dev/null 2>&1 &
 			;;
 		*)
 			echo options are: 
@@ -34,4 +47,3 @@ else
 			;;
 	esac
 fi
-

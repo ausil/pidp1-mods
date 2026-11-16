@@ -1,6 +1,6 @@
 # This allows overriding various parameters for the t30dpy display.
 # It is NOT installed by default, copy and edit it.
-# It is searched for in the user home directory, ~/.t30dpy.config, then in /opt/pidp1-mods/t30dpy.config and
+# It is searched for in the user home directory, ~/.t30dpy.config, then in /etc/pidp1-mods/t30dpy.config (the tree root in an unpacked checkout) and
 # takes precedence over the builtin values.
 # However, command line overrides take precedence over this for settings that have command line settings.
 # The example values below are the builtin values.

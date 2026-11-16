@@ -6,7 +6,7 @@
  *
  * Usage advsave [-i path-to-live-drum-image] [-r] savefile
  *
- * If no -i path is given, the default is '/opt/pidp1-mods/pdp23drum'.
+ * If no -i path is given, the default is '/var/lib/pidp1-mods/pdp23drum'.
  *
  * The first (int size) word in the save file is a magic number for
  * validation, the rest is a 1024 word snapshot of the beginning of the
@@ -30,6 +30,7 @@
 // The DRUM's save marker comes from the file adventure.am1 includes too
 // (as SAVE_MAGIC), so this tool cannot drift from the assembler.
 #include "advmagic.h"
+#include "pidp1_paths.h"
 // ADVSAVE_FILE_MAGIC is this tool's OWN marker for its .sav container
 // file, unrelated to the drum's.
 #define ADVSAVE_FILE_MAGIC ((int)(('X' << 24) | ('Y' << 16) | ('Z' << 8) | 'Z'))

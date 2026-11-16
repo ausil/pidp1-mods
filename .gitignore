@@ -11,6 +11,7 @@
 /bin/panel_pidp1
 /bin/vpanel_pdp1
 /bin/pdp1
+/bin/pdp1_periph
 /bin/pdp1_periphES
 /bin/pdp1_usb_monitor
 /bin/pidp1_test
@@ -31,3 +32,56 @@
 /src/ptytools/mkptyfio
 /src/ptytools/mkptyfl
 /src/ptytools/mkptyfio_telnet
+
+# ---------------------------------------------------------------------------
+# Build products of install/build-all.sh (also run by install.sh).
+# The rule is simple: nothing that a make produces is tracked, including the
+# precompiled binary drop the install script can unpack into bin/.
+# ---------------------------------------------------------------------------
+*.o
+*.d
+*.so
+
+# bison/flex and the permission symbol table generator
+lex.yy.c
+y.tab.c
+y.tab.h
+permsyms.def.c
+
+# the programs, left in their source directories by their makefiles
+/src/macro/macro1_1
+/src/scanpf/scanpf
+/src/pidp1_test/pidp1_test
+/src/pdp1central/pdp1central
+/src/pdp1_periph/pdp1_periph
+/src/pdp1_periph/pdp1_periphES
+/src/usb_paper_tape/pdp1_usb_monitor
+
+# the same, in bin/ (the links build-all.sh makes plus the copies the tools' install rules leave)
+/bin/ad1
+/bin/asr33tape
+/bin/disassemble
+/bin/docviewer
+/bin/drumlist
+/bin/drumupdater
+/bin/fastload
+/bin/fstool
+/bin/mactoam1
+/bin/mkmicrotape
+/bin/mtp
+/bin/ovlload
+/bin/pdpsrv
+/bin/t30dpy
+/web_pdp1/pdpsrv
+/bin/mkptyfio
+/bin/mkptyfl
+/bin/binaries-for-*.tar.gz
+
+# files the running emulator leaves in the install directory
+/coremem
+/punch.out
+
+__pycache__/
+
+# rpmbuild's tree when packaging/pidp1-mods.spec is built with --define '_topdir <this tree>/rpmbuild'
+/rpmbuild/

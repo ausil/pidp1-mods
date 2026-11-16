@@ -81,17 +81,18 @@
 #include <unistd.h>
 #include <getopt.h>
 #include <sys/stat.h>
+#include "pidp1_paths.h"
 
 // The emulator's list of mounted tape.
 #ifndef MTFS_LIST
-#define MTFS_LIST       "/opt/pidp1-mods/microtapes.txt"
+#define MTFS_LIST       PIDP1_MOUNTLIST
 #endif
 #ifndef MTFS_TAPEDIR
-#define MTFS_TAPEDIR    "/opt/pidp1-mods/Microtapes"    // where a relative name in the list is
+#define MTFS_TAPEDIR    PIDP1_MICROTAPEDIR   // where a relative name in the list is
 #endif
 // The emulator's drum file.
 #ifndef MTFS_DRUM
-#define MTFS_DRUM       "/opt/pidp1-mods/pdp23drum"
+#define MTFS_DRUM       PIDP1_DRUMFILE
 #endif
 
 // Each tape block has a leading checksum, the data, and the trailing checksum, each word

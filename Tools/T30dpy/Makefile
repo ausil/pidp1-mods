@@ -1,4 +1,7 @@
-GCC=gcc -O3 -march=native -Wall -Wextra -Wno-unused-result -Wno-implicit-fallthrough -Wno-switch \
+# ARCHFLAGS is a separate variable because a distribution build must not bake in the build
+# machine's -march; the packager overrides it, e.g. make ARCHFLAGS="-march=armv8-a+crc".
+ARCHFLAGS=-march=native
+GCC=gcc -O3 $(ARCHFLAGS) -I../../src/common -Wall -Wextra -Wno-unused-result -Wno-implicit-fallthrough -Wno-switch \
     -Wno-unused-parameter
 #GCC=gcc -g -Og -march=native -Wall -Wextra -Wno-unused-result -Wno-implicit-fallthrough -Wno-switch \
     -fsanitize=address,undefined

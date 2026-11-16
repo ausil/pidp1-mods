@@ -1,8 +1,16 @@
-#!/bin/python3
+#!/usr/bin/python3
+#
+# Ask for the name of a file to write, printing it on stdout: pdp1central's "Save punch to..."
+# chooser when the dialogs are the Tk ones rather than zenity's. It starts in the tape
+# library, which pdp1control passes down through the environment (see bin/pidp1-env.sh).
 
+import os
 import tkinter
 import tkinter.filedialog
 
-file = tkinter.filedialog.asksaveasfilename(initialdir='/opt/pidp1-mods/tapes')
+tapes = os.environ.get('PIDP1_TAPES') or os.path.join(
+    os.environ.get('PIDP1_STATEDIR', '/var/lib/pidp1-mods'), 'tapes')
+
+file = tkinter.filedialog.asksaveasfilename(initialdir=tapes)
 if file != ():
 	print(file)

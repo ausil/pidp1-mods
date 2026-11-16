@@ -1,4 +1,4 @@
-CC=gcc -O0 -g
+CC=gcc -O0 -g -I../../src/common
 //CC=gcc
 
 # drumlist compiles ovlload's .ovl reader straight in, as ovlload does, so that no

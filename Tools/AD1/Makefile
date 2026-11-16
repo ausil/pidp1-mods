@@ -1,7 +1,7 @@
 # Shared code: the link client, the Flexo converter and the .ovl reader and drum writer are in
 # ../UtilLibs, the link's wire format in the emulator's ad1proto.h.
 UTILLIBS=../UtilLibs
-CC=gcc -O3 -Wall -Wextra -Wno-unused-result -I$(UTILLIBS)
+CC=gcc -O3 -Wall -Wextra -Wno-unused-result -I$(UTILLIBS) -I../../src/common
 #CC=gcc -g
 BISONFLAGS=
 #CONFLICTS=-Wcounterexamples

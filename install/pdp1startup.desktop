@@ -1,9 +1,11 @@
 [Desktop Entry]
 Name=pidp1-startup
 Comment=Start up PiDP-1
-Exec=bash pdp1control start
+Exec=pdp1control start
 Terminal=false
 Type=Application
-Icon=/opt/pidp1-mods/install/pdp1control.svg
+Icon=pdp1control
 Categories=X-PDP1;
 StartupNotify=true
+# an autostart template, not a menu entry (install.sh copies it to ~/.config/autostart)
+NoDisplay=true

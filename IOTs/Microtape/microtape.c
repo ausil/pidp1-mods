@@ -32,6 +32,7 @@
 
 //#define DOLOGGING
 #include "iotLogger.h"
+#include "pidp1_paths.h"
 
 #define LOG_MT_IOT      0
 #define LOG_MT_CONFIG   0
@@ -44,13 +45,13 @@
 // Where the drive list lives, and what relative image paths are relative to. The host tests
 // compile with their own.
 #ifndef MT_BASE_DIR
-#define MT_BASE_DIR     "/opt/pidp1-mods"
+#define MT_BASE_DIR     PIDP1_STATEDIR
 #endif
 #ifndef MT_TAPE_DIR
-#define MT_TAPE_DIR     MT_BASE_DIR "/Microtapes"
+#define MT_TAPE_DIR     PIDP1_MICROTAPEDIR
 #endif
 #ifndef MT_LIST_FILE
-#define MT_LIST_FILE    MT_BASE_DIR "/microtapes.txt"
+#define MT_LIST_FILE    PIDP1_MOUNTLIST
 #endif
 
 #define SPEC_MAX        (MT_PATH_MAX + 16)  // a drive entry: path plus ",locked"
