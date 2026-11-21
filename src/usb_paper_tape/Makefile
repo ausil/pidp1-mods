@@ -1,5 +1,9 @@
-CC=gcc
-CFLAGS=-Wall -Wextra -std=c99 -O2 -I../common
+# The tree-wide build convention: environment CC/CFLAGS (rpmbuild's %optflags)
+# win; the ?= defaults are for a bare source build; requirements are appended.
+# See src/pdp1/Makefile.
+CC ?= cc
+CFLAGS ?= -O2 -g -Wall -Wextra
+CFLAGS += -std=c99 -I../common
 TARGET3=pdp1_usb_monitor
 SOURCE3=pdp1_usb_monitor.c
 LIBS=-ludev

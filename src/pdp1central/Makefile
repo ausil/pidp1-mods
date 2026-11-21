@@ -2,12 +2,17 @@
 # Needs SDL2 2.0.18 or later (the Nuklear renderer uses SDL_RenderGeometry).
 # Header dependencies are listed by hand from gcc -MM; a new #include updates them here.
 
-CC=gcc
+# The tree-wide build convention: environment CC/CFLAGS (rpmbuild's %optflags)
+# win; the ?= defaults are for a bare source build; requirements are appended.
+# See src/pdp1/Makefile.
+CC ?= cc
+CFLAGS ?= -O2 -g -Wall -Wextra
+CFLAGS += -D_GNU_SOURCE -I../common `sdl2-config --cflags`
+
 # Every unit that includes nuklear.h must see the same NK_INCLUDE_* options.
 NKFLAGS=-DNK_INCLUDE_FIXED_TYPES -DNK_INCLUDE_STANDARD_IO -DNK_INCLUDE_STANDARD_VARARGS \
 	-DNK_INCLUDE_DEFAULT_ALLOCATOR -DNK_INCLUDE_VERTEX_BUFFER_OUTPUT -DNK_INCLUDE_FONT_BAKING \
 	-DNK_INCLUDE_DEFAULT_FONT
-CFLAGS=-O2 -g -Wall -Wextra -D_GNU_SOURCE -I../common `sdl2-config --cflags`
 LIBS=`sdl2-config --libs` -lm
 
 CORE=procs.o cmdport.o child.o conffile.o schema.o mtlist.o library.o
@@ -15,7 +20,7 @@ CORE=procs.o cmdport.o child.o conffile.o schema.o mtlist.o library.o
 all: pdp1central
 
 pdp1central: pdp1central.o style.o nk.o $(CORE)
-	$(CC) -o $@ $^ $(LIBS)
+	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $^ $(LIBS)
 
 pdp1central.o: pdp1central.c core.h style.h nuklear.h nuklear_sdl_renderer.h
 	$(CC) $(CFLAGS) $(NKFLAGS) -c -o $@ pdp1central.c

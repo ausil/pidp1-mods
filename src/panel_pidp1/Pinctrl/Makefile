@@ -1,4 +1,9 @@
-CFLAGS= $(INC) -O3 -Wno-unused-result
+# The tree-wide build convention: environment CC/CFLAGS (rpmbuild's %optflags)
+# win; the ?= defaults are for a bare source build; requirements are appended.
+# See src/pdp1/Makefile.
+CC ?= cc
+CFLAGS ?= -O2 -g -Wall -Wextra
+CFLAGS += -Wno-unused-result
 
 # The libgpiod backend (gpiolib_gpiod.c) is compiled in when the development
 # files are present; absent them the build falls back to the register-mapping
@@ -17,7 +22,7 @@ SRC := $(wildcard *.c)
 OBJ := $(SRC:.c=.o)
 
 all: $(OBJ)
-	cc -c $(CFLAGS) $(SRC)
+	$(CC) $(CFLAGS) -c $(SRC)
 
 clean:
 	@rm *.o >/dev/null 2>&1 || true

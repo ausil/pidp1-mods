@@ -5,13 +5,18 @@
 # "make -C Tools install", so pdp1audio, mactoam1 and disassemble silently stopped being
 # built and installed. Paths are corrected for the current tree layout.
 
-CC=gcc -O2 -Wall
+# The tree-wide build convention: environment CC/CFLAGS (rpmbuild's %optflags)
+# win; the ?= defaults are for a bare source build; requirements are appended.
+# See src/pdp1/Makefile.
+CC ?= cc
+CFLAGS ?= -O2 -g -Wall -Wextra
 INC=-I../src/common
+CFLAGS += $(INC)
 
 all: pdp1audio tools
 
 pdp1audio: pdp1audio.c ../src/common/common.c
-	$(CC) $(INC) $^ -o $@
+	$(CC) $(CFLAGS) $^ -o $@
 
 tools:
 	cd MtoA; $(MAKE) install

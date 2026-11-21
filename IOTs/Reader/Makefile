@@ -1,34 +1,41 @@
 # The paper tape reader: rpa (IOT_1.so, an alias) and rpb (IOT_2.so, which serves both).
 # IOT_2.so also carries the Type 550 Microtape, which shares device 01 with rpa.
 # Its sources# live in ../Microtape and are compiled here.
+
+# The tree-wide build convention: environment CC/CFLAGS (rpmbuild's %optflags)
+# win; the ?= defaults are for a bare source build; requirements are appended.
+# See src/pdp1/Makefile.
+CC ?= cc
+CFLAGS ?= -O2 -g -Wall -Wextra
 MT= ../Microtape
 INC= -I../../src/common -I../../src/pdp1 -I.. -I../Lib -I$(MT)
+CFLAGS += $(INC) -fPIC
 MTHDRS= $(MT)/microtape.h $(MT)/control550.h $(MT)/transport555.h
 MTOBJS= microtape.o control550.o transport555.o
 
 %.o:%.c ../iotHandler.h ../../src/pdp1/dynamicIots.h ../../src/pdp1/pdp1.h ../../src/pdp1/ad1intf.h
-	gcc $(INC) -O3 -fPIC -c $< -o $@
+	$(CC) $(CFLAGS) -c $< -o $@
 
 %.so:%.o
-	gcc -shared $< -o $@
+	$(CC) $(CFLAGS) -shared $< -o $@
 
 all: IOT_1.so IOT_2.so
 
 IOT_2.o: IOT_2.c ../iotHandler.h ../../src/pdp1/dynamicIots.h ../../src/pdp1/pdp1.h ../../src/pdp1/ad1intf.h $(MTHDRS)
-	gcc $(INC) -O3 -fPIC -c IOT_2.c -o $@
+	$(CC) $(CFLAGS) -c IOT_2.c -o $@
 
 microtape.o: $(MT)/microtape.c $(MTHDRS) ../iotHandler.h ../../src/pdp1/dynamicIots.h ../../src/pdp1/pdp1.h ../../src/pdp1/ad1intf.h ../../src/pdp1/configuration.h ../Lib/iotLogger.h ../Lib/writeBehind.h
-	gcc $(INC) -O3 -fPIC -c $(MT)/microtape.c -o $@
+	$(CC) $(CFLAGS) -c $(MT)/microtape.c -o $@
 
 control550.o: $(MT)/control550.c $(MT)/control550.h $(MT)/transport555.h
-	gcc $(INC) -O3 -fPIC -c $(MT)/control550.c -o $@
+	$(CC) $(CFLAGS) -c $(MT)/control550.c -o $@
 
 transport555.o: $(MT)/transport555.c $(MT)/transport555.h
-	gcc $(INC) -O3 -fPIC -c $(MT)/transport555.c -o $@
+	$(CC) $(CFLAGS) -c $(MT)/transport555.c -o $@
 
 # The microtape writes its image files through the write-behind queue (27-Sep-2026).
 IOT_2.so: IOT_2.o $(MTOBJS) ../Lib/writeBehind.o
-	gcc -shared IOT_2.o $(MTOBJS) ../Lib/writeBehind.o -lpthread -o $@
+	$(CC) $(CFLAGS) -shared IOT_2.o $(MTOBJS) ../Lib/writeBehind.o -lpthread -o $@
 
 install: all
 	cp *.so ..

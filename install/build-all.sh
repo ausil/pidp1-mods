@@ -97,7 +97,9 @@ fi
 # The macro1_1 cross assembler, a single source file with no makefile
 # ---------------------------------------------------------------------------
 echo "=== macro1_1"
-if ! cc -O3 src/macro/macro1_1.c -o src/macro/macro1_1; then
+# The same flag convention as the Makefiles: environment CFLAGS (rpmbuild's
+# %optflags) wins, the ${...:-default} is what a bare source build gets.
+if ! cc ${CFLAGS:--O2 -g -Wall -Wextra} src/macro/macro1_1.c -o src/macro/macro1_1; then
     echo "!!! src/macro/macro1_1.c failed"
     fails+=("src/macro/macro1_1.c")
 fi

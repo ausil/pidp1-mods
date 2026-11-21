@@ -1,11 +1,15 @@
+# The tree-wide build convention: environment CC/CFLAGS (rpmbuild's %optflags)
+# win; the ?= defaults are for a bare source build; requirements are appended.
+# See src/pdp1/Makefile.
+CC ?= cc
+CFLAGS ?= -O2 -g -Wall -Wextra
+
 # ARCHFLAGS is a separate variable because a distribution build must not bake in the build
-# machine's -march; the packager overrides it, e.g. make ARCHFLAGS="-march=armv8-a+crc".
-ARCHFLAGS=-march=native
-GCC=gcc -O3 $(ARCHFLAGS) -I../../src/common -Wall -Wextra -Wno-unused-result -Wno-implicit-fallthrough -Wno-switch \
+# machine's -march; it is empty by default so packaged builds are clean by construction,
+# and a developer can still ask for their own: make ARCHFLAGS="-march=native".
+ARCHFLAGS ?=
+CFLAGS += $(ARCHFLAGS) -I../../src/common -Wno-unused-result -Wno-implicit-fallthrough -Wno-switch \
     -Wno-unused-parameter
-#GCC=gcc -g -Og -march=native -Wall -Wextra -Wno-unused-result -Wno-implicit-fallthrough -Wno-switch \
-    -fsanitize=address,undefined
-#GCC=gcc -g -Og -march=native -Wall -Wextra -Wno-unused-result -Wno-implicit-fallthrough -Wno-switch
 
 # Build only the versions whose SDL is present, and install the SDL3 one as t30dpy when it is.
 # pkg-config is used, as in the emulator's Makefile. Without pkg-config SDL3 can't be detected,
@@ -44,22 +48,22 @@ endif
 endif
 
 t30dpy:	t30dpy.o
-	$(GCC) $^ -o t30dpy -lSDL2 -lSDL2main -lm
+	$(CC) $(CFLAGS) $^ -o t30dpy -lSDL2 -lSDL2main -lm
 
 t30dpy.o: t30dpy.c wincompat.h penCursor.h
-	$(GCC) -c t30dpy.c
+	$(CC) $(CFLAGS) -c t30dpy.c
 
 t30dpy3:	t30dpy3.o
-	$(GCC) $^ -o t30dpy3 -lSDL3 -lm
+	$(CC) $(CFLAGS) $^ -o t30dpy3 -lSDL3 -lm
 
 t30dpy3.o: t30dpy3.c wincompat.h penCursor.h
-	$(GCC) -c t30dpy3.c
+	$(CC) $(CFLAGS) -c t30dpy3.c
 
 dpytester:	dpytester.o
-	$(GCC) $^ -o dpytester
+	$(CC) $(CFLAGS) $^ -o dpytester
 
 dpytester.o: dpytester.c
-	$(GCC) -c dpytester.c
+	$(CC) $(CFLAGS) -c dpytester.c
 
 clean:
 	@rm *.o t30dpy t30dpy3 dpytester 2>/dev/null || true

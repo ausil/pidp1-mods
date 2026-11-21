@@ -1,7 +1,12 @@
-CC=gcc -O3 -Wall
-#CC=gcc -g -Wall
-
 INC=-I../common
+
+# The tree-wide build convention: CC and CFLAGS come in from the environment
+# (rpmbuild exports %optflags), so a packaged build gets the distribution's
+# hardening and optimization on every line; the ?= defaults are what a bare
+# source build gets; what a directory requires is appended, never replaced.
+CC ?= cc
+CFLAGS ?= -O2 -g -Wall -Wextra
+CFLAGS += $(INC)
 
 # Detect SDL3 here,  a plain "make" in this directory will build the correct version of audio.c and link properly.
 # pkg-config is used rather than dpkg-query (which is what install.sh uses for the same check)
@@ -32,16 +37,16 @@ all: pdp1
 
 # symbol-exports.ldr lists what the plugins may call, so a change to it alone relinks.
 pdp1: $(OBJS) symbol-exports.ldr
-	$(CC) -Wl,--dynamic-list=symbol-exports.ldr -o $@ $(OBJS) $(LIBS)
+	$(CC) $(CFLAGS) -Wl,--dynamic-list=symbol-exports.ldr -o $@ $(OBJS) $(LIBS)
 
 # Compile rule for sources in this directory.
 %.o: %.c
-	$(CC) -c $< $(INC) -MMD -MP -o $@
+	$(CC) $(CFLAGS) -c $< -MMD -MP -o $@
 
 # Compile rule for sources living in ../common. The object still lands here, since
 # that's where the final link step looks for it.
 %.o: ../common/%.c
-	$(CC) -c $< $(INC) -MMD -MP -o $@
+	$(CC) $(CFLAGS) -c $< -MMD -MP -o $@
 
 # audio.c's #include of sdl3.h has to see a current copy, not a stale one from a previous build
 # under different SDL availability.

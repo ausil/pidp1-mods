@@ -1,6 +1,10 @@
-CC=gcc $(CCFLAGS) -I$(UTILLIBS) -I$(COMMON)
-CCFLAGS= -O3 -s
-#CCFLAGS= -g
+# The tree-wide build convention: environment CC/CFLAGS (rpmbuild's %optflags)
+# win; the ?= defaults are for a bare source build; requirements are appended.
+# See src/pdp1/Makefile. (CCFLAGS, this file's old flag variable, is gone: the
+# environment carries the flags now, and -s was pointless under %install's
+# strip.)
+CC ?= cc
+CFLAGS ?= -O2 -g -Wall -Wextra
 #BISONFLAGS=-Wcounterexamples
 BISONFLAGS=
 # Shared code is in UTILLIBS
@@ -11,6 +15,9 @@ BISONFLAGS=
 UTILLIBS=../UtilLibs
 # pidp1_paths.h, the installed locations
 COMMON=../../src/common
+
+# Required include paths, appended so they survive an environment CFLAGS.
+CFLAGS += -I$(UTILLIBS) -I$(COMMON)
 
 OBJS=am1.o permsyms.def.o symtab.o lex.yy.o y.tab.o parsefns.o eval.o \
         maccodegen.o bincodegen.o listcodegen.o testcodegen.o listSymtab.o optimizer.o \
@@ -29,14 +36,14 @@ TESTOBJS=$(filter-out am1.o optimizer.o,$(OBJS)) am1-test.o optimizer-test.o
 all: am1 fastload
 
 am1:    $(OBJS)
-	$(CC) -o am1 $^
+	$(CC) $(CFLAGS) -o am1 $^
 
 am1test: $(TESTOBJS)
-	$(CC) -o am1test $^
+	$(CC) $(CFLAGS) -o am1test $^
 
 fastload: fastload.c $(UTILLIBS)/tapeimage.c $(UTILLIBS)/tapeimage.h $(UTILLIBS)/ad1link.c \
 	$(UTILLIBS)/ad1link.h $(UTILLIBS)/ad1proto.h $(UTILLIBS)/ovlfile.c $(UTILLIBS)/ovlfile.h
-	$(CC) -I$(UTILLIBS) fastload.c $(UTILLIBS)/tapeimage.c $(UTILLIBS)/ad1link.c $(UTILLIBS)/ovlfile.c -o fastload
+	$(CC) $(CFLAGS) fastload.c $(UTILLIBS)/tapeimage.c $(UTILLIBS)/ad1link.c $(UTILLIBS)/ovlfile.c -o fastload
 
 clean:
 	@rm -f *.o lex.yy.c y.tab.c y.tab.h permsyms.def.c am1 am1test fastload symtabgen cvtxldr \
@@ -49,13 +56,13 @@ install: am1 fastload
 	strip ../../bin/fastload
 
 permsyms.def.o: permsyms.def.c
-	$(CC) -c permsyms.def.c
+	$(CC) $(CFLAGS) -c permsyms.def.c
 
 lex.yy.o: lex.yy.c y.tab.h lexfuncs.c preprocess.h $(UTILLIBS)/flexoConversion.h
-	$(CC) -c lex.yy.c
+	$(CC) $(CFLAGS) -c lex.yy.c
 
 y.tab.o: y.tab.c
-	$(CC) -DYYDEBUG=1 -c y.tab.c
+	$(CC) $(CFLAGS) -DYYDEBUG=1 -c y.tab.c
 
 permsyms.def.c: symtabgen permsyms.def
 	./symtabgen permsyms.def
@@ -67,118 +74,118 @@ y.tab.%: parser.y am1.h symtab.h
 	bison $(BISONFLAGS) -o y.tab.c -d parser.y
 
 am1.o: am1.c am1.h symtab.h y.tab.h optimizer.h preprocess.h
-	$(CC) -c am1.c
+	$(CC) $(CFLAGS) -c am1.c
 
 optimizer.o: optimizer.c optimizer.h am1.h y.tab.h
-	$(CC) -c optimizer.c
+	$(CC) $(CFLAGS) -c optimizer.c
 
 am1-test.o: am1.c am1.h symtab.h y.tab.h optimizer.h preprocess.h
-	$(CC) -DAM1_TEST_SWITCHES -c am1.c -o am1-test.o
+	$(CC) $(CFLAGS) -DAM1_TEST_SWITCHES -c am1.c -o am1-test.o
 
 optimizer-test.o: optimizer.c optimizer.h am1.h y.tab.h
-	$(CC) -DAM1_TEST_SWITCHES -c optimizer.c -o optimizer-test.o
+	$(CC) $(CFLAGS) -DAM1_TEST_SWITCHES -c optimizer.c -o optimizer-test.o
 
 optdecode.o: optdecode.c optimizer.h am1.h y.tab.h
-	$(CC) -c optdecode.c
+	$(CC) $(CFLAGS) -c optdecode.c
 
 optrefs.o: optrefs.c optimizer.h am1.h y.tab.h
-	$(CC) -c optrefs.c
+	$(CC) $(CFLAGS) -c optrefs.c
 
 optflow.o: optflow.c optimizer.h am1.h y.tab.h
-	$(CC) -c optflow.c
+	$(CC) $(CFLAGS) -c optflow.c
 
 optreturn.o: optreturn.c optimizer.h am1.h y.tab.h
-	$(CC) -c optreturn.c
+	$(CC) $(CFLAGS) -c optreturn.c
 
 optroutine.o: optroutine.c optimizer.h am1.h y.tab.h
-	$(CC) -c optroutine.c
+	$(CC) $(CFLAGS) -c optroutine.c
 
 optcallgraph.o: optcallgraph.c optimizer.h am1.h y.tab.h
-	$(CC) -c optcallgraph.c
+	$(CC) $(CFLAGS) -c optcallgraph.c
 
 optstrings.o: optstrings.c optimizer.h am1.h y.tab.h
-	$(CC) -c optstrings.c
+	$(CC) $(CFLAGS) -c optstrings.c
 
 optrules.o: optrules.c optimizer.h am1.h y.tab.h
-	$(CC) -c optrules.c
+	$(CC) $(CFLAGS) -c optrules.c
 
 optshare.o: optshare.c optimizer.h am1.h y.tab.h
-	$(CC) -c optshare.c
+	$(CC) $(CFLAGS) -c optshare.c
 
 optregion.o: optregion.c optimizer.h am1.h y.tab.h
-	$(CC) -c optregion.c
+	$(CC) $(CFLAGS) -c optregion.c
 
 optreport.o: optreport.c optimizer.h am1.h y.tab.h
-	$(CC) -c optreport.c
+	$(CC) $(CFLAGS) -c optreport.c
 
 opttransform.o: opttransform.c optimizer.h am1.h symtab.h y.tab.h
-	$(CC) -c opttransform.c
+	$(CC) $(CFLAGS) -c opttransform.c
 
 optvalue.o: optvalue.c optimizer.h am1.h y.tab.h
-	$(CC) -c optvalue.c
+	$(CC) $(CFLAGS) -c optvalue.c
 
 optpreserve.o: optpreserve.c optimizer.h am1.h y.tab.h
-	$(CC) -c optpreserve.c
+	$(CC) $(CFLAGS) -c optpreserve.c
 
 optscratch.o: optscratch.c optimizer.h am1.h symtab.h y.tab.h
-	$(CC) -c optscratch.c
+	$(CC) $(CFLAGS) -c optscratch.c
 
 optguess.o: optguess.c optimizer.h am1.h y.tab.h
-	$(CC) -c optguess.c
+	$(CC) $(CFLAGS) -c optguess.c
 
 optspeed.o: optspeed.c optimizer.h am1.h y.tab.h
-	$(CC) -c optspeed.c
+	$(CC) $(CFLAGS) -c optspeed.c
 
 optwindow.o: optwindow.c optimizer.h am1.h symtab.h y.tab.h
-	$(CC) -c optwindow.c
+	$(CC) $(CFLAGS) -c optwindow.c
 
 optrelayout.o: optrelayout.c optimizer.h am1.h symtab.h y.tab.h
-	$(CC) -c optrelayout.c
+	$(CC) $(CFLAGS) -c optrelayout.c
 
 flexoConversion.o: $(UTILLIBS)/flexoConversion.c $(UTILLIBS)/flexoConversion.h
-	$(CC) -c $(UTILLIBS)/flexoConversion.c -o flexoConversion.o
+	$(CC) $(CFLAGS) -c $(UTILLIBS)/flexoConversion.c -o flexoConversion.o
 
 parsefns.o: parsefns.c am1.h y.tab.h
-	$(CC) -c parsefns.c
+	$(CC) $(CFLAGS) -c parsefns.c
 
 eval.o: eval.c am1.h y.tab.h
-	$(CC) -c eval.c
+	$(CC) $(CFLAGS) -c eval.c
 
 maccodegen.o: maccodegen.c am1.h y.tab.h
-	$(CC) -c maccodegen.c
+	$(CC) $(CFLAGS) -c maccodegen.c
 
 bincodegen.o: bincodegen.c am1.h y.tab.h font5x7.h xldr.h
-	$(CC) -c bincodegen.c
+	$(CC) $(CFLAGS) -c bincodegen.c
 
 listcodegen.o: listcodegen.c am1.h y.tab.h $(UTILLIBS)/flexoConversion.h
-	$(CC) -c listcodegen.c
+	$(CC) $(CFLAGS) -c listcodegen.c
 
 mapcodegen.o: mapcodegen.c am1.h symtab.h preprocess.h
-	$(CC) -c mapcodegen.c
+	$(CC) $(CFLAGS) -c mapcodegen.c
 
 srccodegen.o: srccodegen.c optimizer.h am1.h y.tab.h type340chars.h preprocess.h $(UTILLIBS)/flexoConversion.h
-	$(CC) -c srccodegen.c
+	$(CC) $(CFLAGS) -c srccodegen.c
 
 testcodegen.o: testcodegen.c am1.h y.tab.h
-	$(CC) -c testcodegen.c
+	$(CC) $(CFLAGS) -c testcodegen.c
 
 ovlcodegen.o: ovlcodegen.c am1.h symtab.h y.tab.h
-	$(CC) -c ovlcodegen.c
+	$(CC) $(CFLAGS) -c ovlcodegen.c
 
 preprocess.o: preprocess.c preprocess.h
-	$(CC) -c preprocess.c
+	$(CC) $(CFLAGS) -c preprocess.c
 
 listSymtab.o: listSymtab.c am1.h symtab.h y.tab.h
-	$(CC) -c listSymtab.c
+	$(CC) $(CFLAGS) -c listSymtab.c
 
 symtabgen: symtabgen.c am1.h symtab.o
-	$(CC) -o symtabgen symtabgen.c symtab.o
+	$(CC) $(CFLAGS) -o symtabgen symtabgen.c symtab.o
 
 symtab.o: symtab.c symtab.h
-	$(CC) -c symtab.c
+	$(CC) $(CFLAGS) -c symtab.c
 
 cvtxldr: cvtxldr.c
-	$(CC) -o cvtxldr cvtxldr.c
+	$(CC) $(CFLAGS) -o cvtxldr cvtxldr.c
 
 xldr: cvtxldr
 	$(MACRO) xldr.src

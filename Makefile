@@ -13,8 +13,12 @@
 # also means a PREFIX move is a pidp1_paths.h rebuild (-DPIDP1_STATEDIR=... and
 # friends), not a Makefile variable.
 #
-# CFLAGS from the environment reach the Makefiles that honour ?=; rpmbuild's
-# own flags apply where each program takes them.
+# Every Makefile in the tree follows one convention: CC ?= cc, CFLAGS ?= the
+# default policy for a bare source build, and whatever a directory requires
+# (-I paths, -fPIC, defines) appended with +=. rpmbuild exports %optflags into
+# the %build environment, so CFLAGS from the environment - the distribution's
+# hardening and optimization - reaches every compile and link line, and the
+# ?= defaults apply only when nobody set them.
 
 RPM_DIR ?= dist-rpm
 WORKTREE ?=
