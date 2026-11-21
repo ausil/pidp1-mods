@@ -2,6 +2,7 @@
 #
 #   make                    build everything (install/build-all.sh fills bin/)
 #   make rpm                RPMs + source RPM into ./dist-rpm
+#   make srpm               just the source RPM (the COPR flow) into ./dist-rpm
 #   make rpmlint            build the RPMs, then check them with rpmlint
 #   make clean              clean the source directories
 #   make clean-all          also remove bin/'s build products and the drops
@@ -32,7 +33,7 @@ CLEANDIRS := src/pdp1 src/panel_pidp1 src/scanpf src/tapevis src/pidp1_test \
              Tools/T30dpy Tools/MtoA Tools/Disassembler Tools/Docviewer \
              IOTs/Microtape Tools
 
-.PHONY: all clean clean-all rpm rpmlint
+.PHONY: all clean clean-all rpm srpm rpmlint
 
 all:
 	install/build-all.sh
@@ -63,6 +64,12 @@ clean-all: clean
 # snapshot lints code you did not write.
 rpm:
 	packaging/build-rpm.sh $(if $(filter yes,$(WORKTREE)),--worktree) $(RPM_DIR)
+
+# The source RPM only - rpmbuild -bs, so no compile: the tarball, the spec and
+# the staged fragments are the whole SRPM. This is the flow .copr/Makefile
+# runs, spelled for a human who wants the artifact that COPR would build from.
+srpm:
+	packaging/build-rpm.sh --srpm-only $(if $(filter yes,$(WORKTREE)),--worktree) $(RPM_DIR)
 
 # Lint the RPMs, no bare-spec argument: the sysusers and tmpfiles macros read
 # Source1/Source2 at parse time, which only resolves inside the staged build

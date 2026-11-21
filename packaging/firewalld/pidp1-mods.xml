@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Opt-in firewalld service for remote use of the PiDP-1 software. Nothing
+  opens at install: add the service pidp1-mods with firewall-cmd(1) (permanent,
+  then reload) to enable it. Local (loopback) use needs nothing here; the
+  cabinet and every script in bin/ talk to 127.0.0.1, which firewalld never
+  blocks.
+
+  8080      pdpsrv, the web front end
+  1040      pdp1's command port (load, run/cont/halt: trusted networks only)
+  1041      pdp1's typewriter telnet port (Soroban; plain text, not a secret channel)
+  1042/43   pdp1's paper-tape reader and punch ports
+  1050      pdp1_periph/ES and tapevis command port (also served by pdpsrv)
+  3400-3403 pdp1's Type 30 display ports, for t30dpy run on another machine
+-->
+<service>
+  <short>PiDP-1 simulator</short>
+  <description>The PDP-1 emulator's network ports for remote use: the pdpsrv web front end (8080), the emulator's command, typewriter, paper-tape and Type 30 display ports (1040-1043, 3400-3403), and the peripheral daemon's command port (1050). The command port can start, halt and load the machine and the typewriter port is plain-text telnet: enable this service only on networks you trust.</description>
+  <port protocol="tcp" port="8080"/>
+  <port protocol="tcp" port="1040-1043"/>
+  <port protocol="tcp" port="1050"/>
+  <port protocol="tcp" port="3400-3403"/>
+</service>

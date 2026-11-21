@@ -7,8 +7,9 @@ COPR "build from git".
 
     make rpm                      # ./dist-rpm/pidp1-mods-*.rpm + src.rpm
     make rpm WORKTREE=yes         # package the tree as it stands (testing)
+    make srpm                     # source RPM only (COPR's flow), no compile
     make rpmlint                  # build, then rpmlint -c rpmlint.toml
-    packaging/build-rpm.sh --srpm-only dist-rpm    # COPR's flow
+    packaging/build-rpm.sh --srpm-only dist-rpm    # COPR's flow, by hand
 
 ## Layout
 
@@ -31,6 +32,32 @@ state: the state directory, `/etc/pidp1-mods` (pdp1central saves
 write images into. Add the operators who run the panel:
 
     usermod -aG pidp1-mods <name>
+
+## Remote access
+
+Every server in the package binds to all interfaces — a `pdpsrv` or a
+`t30dpy` on another machine reaching the emulator is the design — so remote
+use needs no code, only firewall openings, and a machine with no firewall
+running exposes all of it to the LAN. Loopback always works and needs
+nothing; the cabinet and the `bin/` scripts are all `127.0.0.1`.
+
+| Port | Server | What it is |
+|---|---|---|
+| 8080/tcp | `pdpsrv` | the web front end |
+| 1040/tcp | `pdp1` | command port: load, run/cont/halt — treat like SSH |
+| 1041/tcp | `pdp1` | typewriter telnet (Soroban); plain text |
+| 1042/1043/tcp | `pdp1` | paper-tape reader / punch |
+| 1050/tcp | `pdp1_periph[ES]`, `tapevis`, `pdpsrv` | peripheral command port |
+| 3400-3403/tcp | `pdp1` | Type 30 display screens (remote `t30dpy -h` clients) |
+| 1044/tcp | `pdp1` | ad1 debugger — loopback only, needs nothing |
+| 1045/tcp | `pdp1` | remote ad1 — `ad1remoteport`, off by default |
+
+Two opt-in firewalld services ship with the package; nothing opens at
+install:
+
+    sudo firewall-cmd --permanent --add-service=pidp1-mods        # everything above but 1045
+    sudo firewall-cmd --permanent --add-service=pidp1-mods-debug  # 1045, with ad1remoteport on
+    sudo firewall-cmd --reload
 
 ## Notes and deliberate deviations
 

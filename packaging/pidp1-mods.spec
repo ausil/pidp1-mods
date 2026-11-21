@@ -43,8 +43,11 @@
 # the panel through /dev/gpiochipN, and the shipped 60-pidp1-mods.rules hands
 # the panel's controller to the pidp1-mods group; src/panel_pidp1/setpriv.sh
 # is left for the /dev/mem fallback on kernels that have neither gpiomem nor
-# gpiochip access), and one
-# vendored blob: web_pdp1/vendor, gorilla/websocket, so %%build needs no
+# gpiochip access), no firewall port opened at install (every server binds to
+# all interfaces on purpose -- a web front end or a t30dpy on another machine
+# is the design -- so remote access is the operator's call, taken with the two
+# opt-in firewalld services installed under /usr/lib/firewalld/services), and
+# one vendored blob: web_pdp1/vendor, gorilla/websocket, so %%build needs no
 # network. rpmlint's exceptions, each with its reason, are in rpmlint.toml.
 
 %global srcdate 20261115
@@ -71,7 +74,7 @@ BuildRequires:  pkgconfig(sdl2) pkgconfig(SDL2_image) pkgconfig(SDL2_ttf)
 BuildRequires:  pkgconfig(libgpiod)
 BuildRequires:  golang, python3
 
-Requires:       systemd nmap-ncat screen zenity python3 python3-tk lxterminal telnet
+Requires:       systemd nmap-ncat screen zenity python3 python3-tkinter lxterminal telnet
 # udevadm in the scriptlets that reload the panel rule
 Requires(post): systemd-udev
 Recommends:     golang
@@ -238,6 +241,16 @@ install -Dm 0644 %{SOURCE2} %{buildroot}%{_tmpfilesdir}/pidp1-mods.conf
 install -Dm 0644 packaging/systemd/udev.d/60-pidp1-mods.rules \
     %{buildroot}%{_udevrulesdir}/60-pidp1-mods.rules
 
+# The opt-in firewalld services. Nothing opens at install time -- these are
+# here so enabling remote use is one firewall-cmd --add-service per feature
+# instead of six --add-port lines (see the port table in packaging/README.md).
+# /usr/lib/firewalld/services is where firewalld finds system-shipped
+# definitions; the package must not own or touch the running configuration.
+install -Dm 0644 packaging/firewalld/pidp1-mods.xml \
+    %{buildroot}%{_prefix}/lib/firewalld/services/pidp1-mods.xml
+install -Dm 0644 packaging/firewalld/pidp1-mods-debug.xml \
+    %{buildroot}%{_prefix}/lib/firewalld/services/pidp1-mods-debug.xml
+
 %check
 # the desktop entries must actually parse, and the mactoam1 fixture legs must
 # pass with the am1 and converter built above. The t1 corpus leg is skipped:
@@ -333,6 +346,8 @@ udevadm control --reload-rules 2>/dev/null || :
 %{_sysusersdir}/pidp1-mods.conf
 %{_tmpfilesdir}/pidp1-mods.conf
 %{_udevrulesdir}/60-pidp1-mods.rules
+%{_prefix}/lib/firewalld/services/pidp1-mods.xml
+%{_prefix}/lib/firewalld/services/pidp1-mods-debug.xml
 %{_datadir}/applications/audioOff.desktop
 %{_datadir}/applications/audioOn.desktop
 %{_datadir}/applications/pdp1central.desktop

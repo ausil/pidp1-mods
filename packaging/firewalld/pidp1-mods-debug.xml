@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Opt-in firewalld service for remote ad1 debugging. Add the service
+  pidp1-mods-debug with firewall-cmd(1) (permanent, then reload) together with
+  the ad1remoteport key in /etc/pidp1-mods/pidp1.config (off by default).
+
+  pdp1's ordinary debugger port (ad1port, 1044) binds to loopback only and
+  needs nothing here.
+
+  1045  pdp1's remote debugger port (ad1 with the host colon port option, fastload)
+-->
+<service>
+  <short>PiDP-1 remote debugging</short>
+  <description>The ad1 debugger's remote port (1045), opened together with the ad1remoteport key in /etc/pidp1-mods/pidp1.config. It lets a remote ad1 or fastload inspect and control the running emulator; enable it only on networks you trust and only while debugging.</description>
+  <port protocol="tcp" port="1045"/>
+</service>
