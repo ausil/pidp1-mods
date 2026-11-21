@@ -118,7 +118,7 @@ read_settings
 # Check if pidp1 is already running under screen.
 #
 is_running() {
-	procs=`screen -ls pidp1 | egrep '[0-9]+\.pidp1' | wc -l`
+	procs=`screen -ls pidp1 | grep -E '[0-9]+\.pidp1' | wc -l`
 	return $procs
 }
 
@@ -548,7 +548,7 @@ case "$1" in
 	;;
 
   status)
-	screen -ls pidp1 | egrep '[0-9]+\.pidp1'
+	screen -ls pidp1 | grep -E '[0-9]+\.pidp1'
 	;;
 
   stat)

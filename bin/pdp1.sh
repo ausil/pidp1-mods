@@ -9,7 +9,7 @@
 
 if [ $# -eq 0 ]; then
 
-	procs=`screen -ls pidp1 | egrep '[0-9]+\.pidp1' | wc -l`
+	procs=`screen -ls pidp1 | grep -E '[0-9]+\.pidp1' | wc -l`
 	echo $procs
 	if [ $procs -ne 0 ]; then
 		screen -Dr pidp1
