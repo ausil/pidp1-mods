@@ -13,7 +13,7 @@ Filters = [
     # Machine vocabulary, not typos: this is a 1960 computer (DEC manuals,
     # the AI Lab memos). Matched on the quoted token only, so a genuine typo
     # elsewhere still reports.
-    ".*spelling-error \\('(am1|ad1|dpy|env|fiodec|fstool|iot|mactoam1|microtape|mtp|ovlload|pdp|pidp|soroban|src|type550)'.*",
+    ".*spelling-error \\('(am1|ad1|dpy|env|fiodec|fstool|iot|mactoam1|microtape|mtp|ovlload|pdp|pidp|soroban|src|tapevis|type550)'.*",
 
     # The per-program Makefiles assemble their own compile lines (that is
     # how the tree has always built, and why -march=native needed an
@@ -66,12 +66,20 @@ Filters = [
     # objects for anything to link against.
     '.*devel-file-in-non-devel-package .*/usr/share/pidp1-mods/(FunStuff|Diagnostics)/.*',
 
-    # The %post copies run guarded: cp -a only when pdp23drum is absent,
-    # and cp -n (never overwrite) for the state seeds, so the "dangerous"
-    # overwrite scenario cannot happen. The alternative - install -m644 from
-    # the package every upgrade - is what the guard exists to avoid: the
-    # drum image is the user's data.
+    # The one %post copy runs guarded: cp -a only when pdp23drum is absent,
+    # so the "dangerous" overwrite scenario cannot happen. The alternative -
+    # install -m644 from the package every upgrade - is what the guard
+    # exists to avoid: the drum image is the user's data.
     '.*dangerous-command-in-%post cp.*',
+
+    # The tape library carries historical copies of the same image (a
+    # dpys5.rim in tapes/, tapes/old/ and tapes/music/, assembler sources
+    # beside their binaries). That is curation of a historical collection,
+    # not packaging duplication: bootcfg/*.cfg and the front panel's habits
+    # name those exact paths. Invisible while the library lived under
+    # /usr/share - rpmlint checks duplicates under /var - and harmless
+    # there: 9.4M of a museum's shelves, not two build products.
+    '.*files-duplicate .*/var/lib/pidp1-mods/tapes/.*',
 
     # The vendored gorilla/websocket keeps its notice beside its sources
     # (modules.txt requires the tree as go mod vendor wrote it) and a second
@@ -85,4 +93,12 @@ Filters = [
     # on new files (the drum image, saved configs, tape images). It matches
     # the tmpfiles fragment exactly, so rpm -V agrees with the modes.
     '.*non-standard-dir-perm .*pidp1-mods.* 2775',
+
+    # 0775 root:pidp1-mods on the five curated subdirectories of the shipped
+    # tape library: the same shared-panel rule one level down, so operators
+    # can curate tapes/doc or tapes/sources without root. They cannot carry
+    # the setgid bit (their contents are package-owned %config(noreplace)
+    # files, not site-dropped data), which is why this line is separate from
+    # the 2775 one above.
+    '.*non-standard-dir-perm .*pidp1-mods/tapes/(doc|flap|music|old|sources) 775',
 ]

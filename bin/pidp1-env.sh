@@ -28,8 +28,9 @@ fi
 
 : "${PIDP1_ROOT:=$([ $pidp1_installed -eq 0 ] && cd "$pidp1_here/.." && pwd || echo /usr/share/pidp1-mods)}"
 
-# Read-only program data: the tape library, Microtapes, the Am1 include files, the web assets,
-# and the helper scripts the front ends run.
+# Read-only program data: Microtapes, the Am1 include files, the web assets,
+# and the helper scripts the front ends run. (The tape library and bootcfg/
+# are NOT here: they live in PIDP1_STATEDIR, where the machine reads them.)
 : "${PIDP1_DATADIR:=$PIDP1_ROOT}"
 # What the running machine writes: the Type 23 drum image, coremem, punch.out, and tapes/,
 # the tape library the front panel selector boots from. The emulator is started with this as

@@ -9,14 +9,20 @@
 # describe; they are the single source of truth and must agree with %%files:
 #
 #   /usr/share/pidp1-mods    read-only program data, a mirror of the checkout:
-#                            the tape library, Microtapes, Drums, Am1Includes,
+#                            Microtapes, Drums, Am1Includes, MacroIncludes,
 #                            Docs, FunStuff, the web assets, and bin/ with the
 #                            helper scripts.
-#   /var/lib/pidp1-mods      what the running machine writes: the Type 23 drum
-#                            image, coremem, punch.out, and tapes/ and
-#                            bootcfg/, seeded on first install from the
-#                            read-only masters above (tmpfiles recreates the
-#                            directories; %%post does the copying).
+#   /var/lib/pidp1-mods      what the running machine reads and writes: the
+#                            Type 23 drum image, coremem, punch.out, and the
+#                            shipped tape library and boot configurations in
+#                            tapes/ and bootcfg/ -- package content living
+#                            where the machine looks for it (pidp1_paths.h
+#                            PIDP1_TAPEDIR, pidp1-env.sh PIDP1_TAPES), owned
+#                            by the package as %%config(noreplace): site
+#                            edits survive upgrades (the shipped update
+#                            lands as .rpmnew), files the site added itself
+#                            are left alone, and tmpfiles recreates the
+#                            directories.
 #   /etc/pidp1-mods          the site's configuration, %%config(noreplace):
 #                            pidp1.config, t30dpy.config, microtapes.txt,
 #                            usb_paper_tape_ports.cfg.
@@ -40,8 +46,10 @@
 # systemd units (pdp1, pdp1-panel, pdp1-bootcfg) ship preset-disabled --
 # installing the package never starts the simulator on its own; the desktop
 # front door remains pdp1control and the cabinet operator enables the units
-# once, no subpackage split yet (a -panel split waits for hardware and
-# headless boxes to diverge),
+# once, one subpackage split already (%%{name}-clients carries the programs
+# that talk to a remote pdp1 -- t30dpy, tapevis, ad1 -- for machines that
+# watch or debug the machine rather than being it; a -panel split waits for
+# hardware and headless boxes to diverge),
 # no setuid on the hardware panel driver (newpanel's libgpiod backend drives
 # the panel through /dev/gpiochipN, and the shipped 60-pidp1-mods.rules hands
 # the panel's controller to the pidp1-mods group; src/panel_pidp1/setpriv.sh
@@ -53,7 +61,7 @@
 # one vendored blob: web_pdp1/vendor, gorilla/websocket, so %%build needs no
 # network. rpmlint's exceptions, each with its reason, are in rpmlint.toml.
 
-%global srcdate 20261115
+%global srcdate 20261121
 
 Name:           pidp1-mods
 Version:        1.0
@@ -79,15 +87,41 @@ Requires:       systemd nmap-ncat screen zenity python3 python3-tkinter lxtermin
 # udevadm in the scriptlets that reload the panel rule
 Requires(post): systemd-udev
 Recommends:     golang
+# pdp1control start/apps launches t30dpy and tapevis beside the machine, so
+# a cabinet install keeps the clients by default; a remote operator installs
+# just the subpackage
+Recommends:     %{name}-clients = %{version}-%{release}
 # the noisy Teletype model 33 that `pdp1 con` starts (its sty, PIDP10_STY)
 Suggests:       pidp10
 
 %description
 A PDP-1 emulator with the PiDP-1 physical and virtual front panels, the Type 23
-drum and Type 550 microtape IOTs, the am1 macro assembler, the ad1 debugger, the
-t30dpy Type 30 display, and the rest of the pdp1 / pdp1control / pdp1central
-tool set. The FHS layout matches src/common/pidp1_paths.h and bin/pidp1-env.sh,
-so a packaged install and a source checkout behave the same.
+drum and Type 550 microtape IOTs, the am1 macro assembler, the ad1 debugger,
+and the rest of the pdp1 / pdp1control / pdp1central tool set. The FHS layout
+matches src/common/pidp1_paths.h and bin/pidp1-env.sh, so a packaged install
+and a source checkout behave the same. The programs that watch or debug a
+remote machine over the network -- t30dpy, tapevis, ad1 -- are the separate
+pidp1-mods-clients, which needs none of this.
+
+%package clients
+Summary:        Clients for watching and debugging a remote PDP-1
+
+%description clients
+The programs that talk to a pdp1 over the network instead of being the
+machine: the t30dpy Type 30 vector display (display port 3400 plus the
+screen number), the tapevis paper tape reader and punch (1042 and 1043),
+and the ad1 debugger (the debugger port, 1044, or 1045 with
+ad1remoteport turned on at the machine). Installing only this package is
+the remote-operator setup -- SDL2 and nothing else from us, no emulator,
+no panel code, no tools:
+
+    t30dpy <host>        # SDL2 window, screen 0; -p for another
+    tapevis -h <host>    # network reader and punch
+    ad1 ...              # see the documentation
+
+t30dpy with no arguments connects to the local machine; its settings come
+from ~/.t30dpy.config, then from /etc/pidp1-mods/t30dpy.config when the
+main package is installed too.
 
 %prep
 %autosetup -n %{name}-%{version}-%{srcdate}
@@ -112,7 +146,7 @@ libexec=%{buildroot}%{_libexecdir}/pidp1-mods
 # find their pieces under DATADIR the same way they find them in the tree.
 # ---------------------------------------------------------------------------
 mkdir -p $datadir
-cp -a Am1Includes MacroIncludes Docs Drums Microtapes tapes bootcfg Diagnostics \
+cp -a Am1Includes MacroIncludes Docs Drums Microtapes Diagnostics \
       FunStuff web_pdp1 $datadir/
 rm -f $datadir/web_pdp1/pdpsrv                 # built binary belongs in libexec
 cp -a pdp23drum.example pidp1.config.example $datadir/
@@ -186,7 +220,10 @@ install -m 755 IOTs/*.so $iotdir/
 # Configuration and state. The writable bits are group pidp1-mods (created by
 # the sysusers fragment in %%pre) so a panel driver started by any member can
 # write them. The tmpfiles fragment (Source2) recreates the state directories;
-# %%post seeds what belongs in them once.
+# %%post seeds the drum image once. The tape library and boot configurations
+# are package content that the machine reads from the state tree, so they
+# install there and the package owns them as %%config(noreplace) data -- no
+# seeding copy; %%files spells the flags.
 # ---------------------------------------------------------------------------
 mkdir -p %{buildroot}%{_sysconfdir}/pidp1-mods
 cp -a pidp1.config.example    %{buildroot}%{_sysconfdir}/pidp1-mods/pidp1.config
@@ -195,6 +232,14 @@ cp -a microtapes.txt.example  %{buildroot}%{_sysconfdir}/pidp1-mods/microtapes.t
 cp -a bin/usb_paper_tape_ports.cfg %{buildroot}%{_sysconfdir}/pidp1-mods/
 
 mkdir -p -m 775 $statedir $statedir/tapes $statedir/bootcfg
+# the shipped library (9.4M of tapes, bootcfg/<number>.cfg files). What rpm
+# records is decided entirely by the %%attr in %%files (0664 root:pidp1-mods
+# data, 0775 subdirectories, 2775 top ones); these chmods just normalize the
+# cp -a'd tree so the buildroot matches.
+cp -a tapes/. $statedir/tapes/
+cp -a bootcfg/. $statedir/bootcfg/
+find $statedir/tapes $statedir/bootcfg -type d -exec chmod 755 {} +
+find $statedir/tapes $statedir/bootcfg -type f -exec chmod 0644 {} +
 
 # ---------------------------------------------------------------------------
 # Man pages for the front doors, desktop entries, and their theme icons (the
@@ -280,8 +325,6 @@ if [ ! -f $st/pdp23drum ]; then
     chgrp pidp1-mods $st/pdp23drum
     chmod 0664 $st/pdp23drum
 fi
-cp -aN $da/tapes/.   $st/tapes/   2>/dev/null || :
-cp -aN $da/bootcfg/. $st/bootcfg/ 2>/dev/null || :
 gtk-update-icon-cache -qf %{_datadir}/icons/hicolor 2>/dev/null || :
 # re-apply the shipped rule to the panel nodes so an existing cabinet does
 # not wait for a reboot (no-op where neither node family exists)
@@ -304,7 +347,6 @@ udevadm control --reload-rules 2>/dev/null || :
 %doc README.md RELEASENOTES.txt PACKAGING.md
 %{_mandir}/man1/pdp1.1*
 %{_mandir}/man1/pdp1control.1*
-%{_bindir}/ad1
 %{_bindir}/am1
 %{_bindir}/asr33tape
 %{_bindir}/decode_fiodec
@@ -326,8 +368,6 @@ udevadm control --reload-rules 2>/dev/null || :
 %{_bindir}/pdp1central
 %{_bindir}/pdp1control
 %{_bindir}/scanpf
-%{_bindir}/t30dpy
-%{_bindir}/tapevis
 %{_bindir}/tape_visualizer
 %{_bindir}/tkaskopenfile
 %{_bindir}/tkaskopenfilewrite
@@ -342,9 +382,7 @@ udevadm control --reload-rules 2>/dev/null || :
 %{_datadir}/pidp1-mods/Diagnostics
 %{_datadir}/pidp1-mods/FunStuff
 %{_datadir}/pidp1-mods/bin
-%{_datadir}/pidp1-mods/bootcfg
 %{_datadir}/pidp1-mods/src
-%{_datadir}/pidp1-mods/tapes
 %{_datadir}/pidp1-mods/web_pdp1
 %{_datadir}/pidp1-mods/pdp23drum.example
 %{_datadir}/pidp1-mods/pidp1.config.example
@@ -368,26 +406,81 @@ udevadm control --reload-rules 2>/dev/null || :
 %{_datadir}/applications/pdp1startup.desktop
 %{_datadir}/applications/ptp.desktop
 %{_datadir}/applications/ptr.desktop
-%{_datadir}/applications/t30dpy.desktop
 %{_datadir}/applications/tty.desktop
 %{_datadir}/icons/hicolor/scalable/apps/pdp1.svg
 %{_datadir}/icons/hicolor/scalable/apps/pdp1central.svg
 %{_datadir}/icons/hicolor/scalable/apps/pdp1control.svg
 %{_datadir}/icons/hicolor/scalable/apps/pidp1-ptp.svg
 %{_datadir}/icons/hicolor/scalable/apps/pidp1-ptr.svg
-%{_datadir}/icons/hicolor/scalable/apps/t30dpy.svg
 %{_datadir}/icons/hicolor/scalable/apps/soroban.svg
 %config(noreplace) %{_sysconfdir}/pidp1-mods/usb_paper_tape_ports.cfg
-# writable-by-group: the members of pidp1-mods run the machine
+# writable-by-group: the members of pidp1-mods run the machine. tapes/ and
+# bootcfg/ are the shipped library itself: package-owned content in the state
+# tree, marked %%config(noreplace) -- a site that patches a bootcfg or a tape
+# keeps its copy across upgrades (the new shipped one arrives as .rpmnew),
+# and files the site adds itself rpm never touches.
+#
+# Every path below is matched by exactly one line, which is not paranoia but
+# the lesson of a probe: rpm's * does not cross a slash, a bare glob that
+# matches a directory inherits its mode AND recurses into its contents, and
+# overlapping %%config entries record the wrong mode with "File listed
+# twice" -- which line wins is not a thing to build on. So: directories get
+# %%dir lines, the top-level library files are the ones with a dot in the
+# name (none without, and no directory has one), the subdirectories'
+# contents one level down get */*. Add a %%dir line when the library grows a
+# sixth curated subdirectory.
 %dir %attr(2775, root, pidp1-mods) %{_sharedstatedir}/pidp1-mods
 %dir %attr(2775, root, pidp1-mods) %{_sharedstatedir}/pidp1-mods/tapes
+%dir %attr(0775, root, pidp1-mods) %{_sharedstatedir}/pidp1-mods/tapes/doc
+%dir %attr(0775, root, pidp1-mods) %{_sharedstatedir}/pidp1-mods/tapes/flap
+%dir %attr(0775, root, pidp1-mods) %{_sharedstatedir}/pidp1-mods/tapes/music
+%dir %attr(0775, root, pidp1-mods) %{_sharedstatedir}/pidp1-mods/tapes/old
+%dir %attr(0775, root, pidp1-mods) %{_sharedstatedir}/pidp1-mods/tapes/sources
+%config(noreplace) %attr(0664, root, pidp1-mods) %{_sharedstatedir}/pidp1-mods/tapes/*.*
+%config(noreplace) %attr(0664, root, pidp1-mods) %{_sharedstatedir}/pidp1-mods/tapes/*/*
 %dir %attr(2775, root, pidp1-mods) %{_sharedstatedir}/pidp1-mods/bootcfg
+%config(noreplace) %attr(0664, root, pidp1-mods) %{_sharedstatedir}/pidp1-mods/bootcfg/*
 %dir %attr(2775, root, pidp1-mods) %{_sysconfdir}/pidp1-mods
 %attr(0664, root, pidp1-mods) %config(noreplace) %{_sysconfdir}/pidp1-mods/pidp1.config
-%attr(0664, root, pidp1-mods) %config(noreplace) %{_sysconfdir}/pidp1-mods/t30dpy.config
 %attr(0664, root, pidp1-mods) %config(noreplace) %{_sysconfdir}/pidp1-mods/microtapes.txt
 
+# The network clients share one package because they share one reason to
+# exist -- a machine that talks to a pdp1 elsewhere -- and one dependency
+# story: SDL2 for the two windows, nothing extra for ad1. Per-tool packages
+# would each cost a debuginfo and a version pin to say "I do not want SDL2".
+# Everything that draws t30dpy travels together: the desktop entry names
+# Icon=t30dpy, so the svg follows the .desktop file. The /etc default
+# travels too (t30dpy reads ~/.t30dpy.config first and this file second,
+# t30dpy.c's config comment) but stays plain root:root unlike its /etc
+# siblings: a group there would become Requires group(pidp1-mods), which
+# only the main package provides -- and a dependency that drags the
+# emulator onto the remote machine is exactly what this package exists to
+# avoid. Cabinet operators who want it group-writable have
+# ~/.t30dpy.config, and remote operators always do.
+%files clients
+%license LICENSE
+%doc t30dpy.config.example
+%{_bindir}/ad1
+%{_bindir}/tapevis
+%{_bindir}/t30dpy
+%{_datadir}/applications/t30dpy.desktop
+%{_datadir}/icons/hicolor/scalable/apps/t30dpy.svg
+%config(noreplace) %{_sysconfdir}/pidp1-mods/t30dpy.config
+
 %changelog
+* Sat Nov 21 2026 Dennis Gilmore <dennis@ausil.us> - 1.0-1.20261121
+- tapes/ and bootcfg/ moved from /usr/share to /var/lib/pidp1-mods, as
+  %%config(noreplace) package content: site edits survive upgrades (the
+  shipped update lands as .rpmnew) and the shipped library is group-owned
+  by pidp1-mods (0664 data, 0775 subdirectories, 2775 top) so operators
+  in the group can curate it without root.
+- New pidp1-mods-clients subpackage: t30dpy, tapevis and ad1 -- the
+  programs that talk to a pdp1 over the network -- for machines that
+  watch or debug a remote machine. SDL2 and glibc are its only runtime
+  deps; the main package Recommends it, so cabinet installs are unchanged.
+- IOTs/cleanall.sh gained the shebang whose absence failed the emulated
+  riscv64 build (exit 127 under qemu-user's direct exec).
+
 * Sun Nov 15 2026 Dennis Gilmore <dennis@ausil.us> - 1.0-1.20261115
 - Initial packaged layout: FHS homes per src/common/pidp1_paths.h and
   bin/pidp1-env.sh, one build list in install/build-all.sh, sysusers and

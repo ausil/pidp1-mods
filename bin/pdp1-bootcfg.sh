@@ -9,8 +9,8 @@
 # A cabinet with no panel sees the switches all down (0), and with no 0.cfg
 # the machine comes up idle -- the same forgiving behavior pdp1control has.
 #
-# The boot images themselves need no fetching: %post seeds tapes/ and
-# bootcfg/ from the read-only masters under /usr/share/pidp1-mods.
+# The boot images themselves need no fetching: the package installs tapes/
+# and bootcfg/ under $PIDP1_STATEDIR directly.
 
 . "${PIDP1_ENV:-$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")/pidp1-env.sh}"
 

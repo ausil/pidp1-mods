@@ -5,14 +5,21 @@
  * path written out in about forty places. Installed as an RPM the pieces go to
  * their normal FHS homes instead, and this is the one place that says where:
  *
- *   PIDP1_DATADIR     /usr/share/pidp1-mods      read-only program data: the tape
- *                                                 library, Microtapes, Drums, the
- *                                                 Am1 include files, Docs, FunStuff,
- *                                                 the web assets.
- *   PIDP1_STATEDIR    /var/lib/pidp1-mods        what the running machine writes:
- *                                                 the Type 23 drum image, coremem,
- *                                                 and tapes/, the tape library the
- *                                                 panel's selector boots from.
+ *   PIDP1_DATADIR     /usr/share/pidp1-mods      read-only program data:
+ *                                                 Microtapes, Drums, the
+ *                                                 Am1 include files, Docs,
+ *                                                 FunStuff, the web assets.
+ *   PIDP1_STATEDIR    /var/lib/pidp1-mods        what the running machine
+ *                                                 reads and writes: the Type
+ *                                                 23 drum image, coremem, and
+ *                                                 the shipped tape library
+ *                                                 (tapes/) and boot
+ *                                                 configurations (bootcfg/)
+ *                                                 the panel's selector boots
+ *                                                 from -- package content,
+ *                                                 installed there because
+ *                                                 that is where they are
+ *                                                 looked up.
  *   PIDP1_SYSCONFDIR  /etc/pidp1-mods            the site's configuration:
  *                                                 pidp1.config, t30dpy.config,
  *                                                 microtapes.txt, usb_paper_tape_ports.cfg
