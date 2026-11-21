@@ -17,8 +17,14 @@
 // GPIO_CHIP_INTERFACE_T; 'size' is the number of GPIOs the chip provides; 'data' is an
 // opaque chip-specific value (e.g. a register base offset) passed back into every
 // interface callback via the GPIO_CHIP_T*.
+// 'used' keeps the variable alive for LTO: nothing in the program references it by name
+// (gpiolib_init() reaches it through the linker-synthesized __start_gpiochips), and under
+// -flto (which Fedora's %optflags carry) LTRANS garbage-collects an unreferenced global,
+// so the "gpiochips" section would vanish from the link and __start_gpiochips/__stop_gpiochips
+// would be undefined. Without LTO the section is in the object either way and 'used' is
+// simply belt-and-braces.
 #define DECLARE_GPIO_CHIP(name, compatible, iface, size, data) \
-    GPIO_CHIP_T name ## _chip __attribute__ ((section ("gpiochips"))) = \
+    GPIO_CHIP_T name ## _chip __attribute__ ((section ("gpiochips"), used)) = \
     { #name, compatible, iface, size, data }
 
 typedef struct GPIO_CHIP_INTERFACE_ GPIO_CHIP_INTERFACE_T;
