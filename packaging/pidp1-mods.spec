@@ -36,9 +36,12 @@
 # Microtapes/ and Drums/ data subdirectories the IOTs and drum tools write
 # images into. Operators run: usermod -aG pidp1-mods <name>.
 #
-# Deliberate deviations, expanded in packaging/README.md: no systemd service
-# (the simulator is interactive; pdp1control is the front door), no subpackage
-# split yet (a -panel split waits for hardware and headless boxes to diverge),
+# Deliberate deviations, expanded in packaging/README.md: the boot-time
+# systemd units (pdp1, pdp1-panel, pdp1-bootcfg) ship preset-disabled --
+# installing the package never starts the simulator on its own; the desktop
+# front door remains pdp1control and the cabinet operator enables the units
+# once, no subpackage split yet (a -panel split waits for hardware and
+# headless boxes to diverge),
 # no setuid on the hardware panel driver (newpanel's libgpiod backend drives
 # the panel through /dev/gpiochipN, and the shipped 60-pidp1-mods.rules hands
 # the panel's controller to the pidp1-mods group; src/panel_pidp1/setpriv.sh
@@ -240,6 +243,18 @@ install -Dm 0644 %{SOURCE2} %{buildroot}%{_tmpfilesdir}/pidp1-mods.conf
 # beside its siblings, and Source0 carries it into the build
 install -Dm 0644 packaging/systemd/udev.d/60-pidp1-mods.rules \
     %{buildroot}%{_udevrulesdir}/60-pidp1-mods.rules
+# The boot-time units and their preset. All three live under
+# packaging/systemd/ beside the fragments above and ride in Source0; the
+# preset disables them so an install stays opt-in (systemd's preset policy
+# without a preset file is to enable).
+install -Dm 0644 packaging/systemd/system/pdp1.service \
+    %{buildroot}%{_unitdir}/pdp1.service
+install -Dm 0644 packaging/systemd/system/pdp1-panel.service \
+    %{buildroot}%{_unitdir}/pdp1-panel.service
+install -Dm 0644 packaging/systemd/system/pdp1-bootcfg.service \
+    %{buildroot}%{_unitdir}/pdp1-bootcfg.service
+install -Dm 0644 packaging/systemd/system-preset/90-pidp1-mods.preset \
+    %{buildroot}%{_presetdir}/90-pidp1-mods.preset
 
 # The opt-in firewalld services. Nothing opens at install time -- these are
 # here so enabling remote use is one firewall-cmd --add-service per feature
@@ -266,6 +281,7 @@ bash Tools/MtoA/Tests/run_tests.sh -w %{_builddir}/mtoatest t2 t3
 %sysusers_create_package %{name} %{SOURCE1}
 
 %post
+%systemd_post pdp1.service pdp1-panel.service pdp1-bootcfg.service
 %tmpfiles_create_package %{name} %{SOURCE2}
 st=%{_sharedstatedir}/pidp1-mods
 da=%{_datadir}/pidp1-mods
@@ -285,7 +301,11 @@ for d in /dev/gpiomem* /dev/gpiochip*; do
     [ -e "$d" ] && udevadm trigger -c add "$d" 2>/dev/null || :
 done
 
+%preun
+%systemd_preun pdp1.service pdp1-panel.service pdp1-bootcfg.service
+
 %postun
+%systemd_postun_with_restart pdp1.service pdp1-panel.service pdp1-bootcfg.service
 gtk-update-icon-cache -qf %{_datadir}/icons/hicolor 2>/dev/null || :
 udevadm control --reload-rules 2>/dev/null || :
 
@@ -346,6 +366,10 @@ udevadm control --reload-rules 2>/dev/null || :
 %{_sysusersdir}/pidp1-mods.conf
 %{_tmpfilesdir}/pidp1-mods.conf
 %{_udevrulesdir}/60-pidp1-mods.rules
+%{_unitdir}/pdp1.service
+%{_unitdir}/pdp1-panel.service
+%{_unitdir}/pdp1-bootcfg.service
+%{_presetdir}/90-pidp1-mods.preset
 %{_prefix}/lib/firewalld/services/pidp1-mods.xml
 %{_prefix}/lib/firewalld/services/pidp1-mods-debug.xml
 %{_datadir}/applications/audioOff.desktop

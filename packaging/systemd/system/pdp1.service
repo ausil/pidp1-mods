@@ -1,0 +1,23 @@
+[Unit]
+Description=PiDP-1 simulator engine
+Documentation=man:pdp1
+# The engine is the machine; pdp1-panel and pdp1-bootcfg are units of their
+# own that want this one. Shipped preset-disabled: booting into the simulator
+# is the operator's call (see 90-pidp1-mods.preset).
+
+[Service]
+Type=simple
+# The user and group the sysusers fragment creates; the group already owns
+# the state directory, /etc/pidp1-mods, and the panel's GPIO nodes.
+User=pidp1-mods
+Group=pidp1-mods
+ExecStart=/usr/libexec/pidp1-mods/pdp1
+WorkingDirectory=/var/lib/pidp1-mods
+Restart=on-failure
+RestartSec=3
+NoNewPrivileges=yes
+# SDL2 here is audio only (no window); on a cabinet with no sound card a
+# drop-in setting SDL_AUDIODRIVER=dummy keeps pdp1's audio init quiet.
+
+[Install]
+WantedBy=multi-user.target

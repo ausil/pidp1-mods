@@ -1,0 +1,20 @@
+[Unit]
+Description=Load the PiDP-1 boot configuration into the emulator
+Documentation=man:pdp1
+# Feeds bootcfg/<number>.cfg to pdp1's command port once the engine is up,
+# the way pdp1control start does after it reads the sense switches. The
+# number is PDP1_BOOT_NUMBER (a drop-in: systemctl edit pdp1-bootcfg) or,
+# unset, the panel's sense switches via scanpf.
+Requires=pdp1.service
+After=pdp1.service
+
+[Service]
+Type=oneshot
+User=pidp1-mods
+Group=pidp1-mods
+RemainAfterExit=yes
+Environment=PDP1_BOOT_NUMBER=
+ExecStart=/usr/share/pidp1-mods/bin/pdp1-bootcfg.sh
+
+[Install]
+WantedBy=multi-user.target

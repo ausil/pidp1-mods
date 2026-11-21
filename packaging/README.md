@@ -33,6 +33,40 @@ write images into. Add the operators who run the panel:
 
     usermod -aG pidp1-mods <name>
 
+## Starting the machine at boot
+
+Three units boot the simulator without a login, all of them
+**preset-disabled** — installing the package never starts anything on its
+own; the operator enables them once:
+
+    sudo systemctl enable --now pdp1 pdp1-panel pdp1-bootcfg
+
+| Unit | Runs |
+|---|---|
+| `pdp1.service` | the emulator (`/usr/libexec/pidp1-mods/pdp1`), restarted if it fails |
+| `pdp1-panel.service` | the cabinet's physical panel driver — enable on a real PiDP-1 only; without the hardware it exits and `Restart=` would cycle it |
+| `pdp1-bootcfg.service` | oneshot feeding `bootcfg/<number>.cfg` to the command port, the way `pdp1control start` does |
+
+All three run as the `pidp1-mods` user (added to the sysusers fragment next
+to its group); the group already owns the state directory, `/etc/pidp1-mods`
+and the panel's GPIO nodes, so the units need no privileges. The boot
+images need no fetching either: `%post` seeds `tapes/` and `bootcfg/` into
+`/var/lib/pidp1-mods` from the read-only masters, and a new `.rim` dropped
+into `tapes/` is reachable from a `bootcfg/<n>.cfg` via `PDP1_DIR/tapes/`.
+
+The boot number names the `bootcfg/<number>.cfg` to load. `pdp1-bootcfg`
+reads it from the panel's sense switches (`scanpf`, all-down → `0`) unless
+`PDP1_BOOT_NUMBER` says otherwise — set it persistently with
+`systemctl edit pdp1-bootcfg` and `Environment=PDP1_BOOT_NUMBER=2`. No
+matching config, or no `0.cfg`, and the machine boots idle, like `pdp1control`.
+`pdp1` uses SDL2 for audio only; a cabinet with no sound card can silence
+its init with a drop-in `Environment=SDL_AUDIODRIVER=dummy`.
+
+Desktop use is unchanged: `pdp1control` starts the same programs in a
+`screen` session, and `pdp1startup.desktop` remains the autostart path.
+Don't run both — the units and a desktop session compete for the panel and
+the ports.
+
 ## Remote access
 
 Every server in the package binds to all interfaces — a `pdpsrv` or a
@@ -61,9 +95,9 @@ install:
 
 ## Notes and deliberate deviations
 
-* There is no systemd service: the simulator is interactive (the front door
-  is `pdp1control`), unlike pidp10's unit-managed engine. The autostart path
-  is the `pdp1startup.desktop` template in `~/.config/autostart`.
+* The boot-time units exist but are preset-disabled — the desktop front door
+  stays `pdp1control`, so booting into the simulator is the operator's
+  call, not the package manager's (see *Starting the machine at boot*).
 * No subpackages yet. A `-panel` split (newpanel, pidp1_test, scanpf) is
   worth it when a machine with real PiDP-1 hardware and a headless box stop
   wanting the same dependency set.

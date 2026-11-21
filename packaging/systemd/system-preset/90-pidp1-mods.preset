@@ -1,0 +1,11 @@
+# The boot-time units are opt-in: installing the package must not start the
+# simulator on next boot. Operators turn the cabinet on with
+#
+#     systemctl enable --now pdp1 pdp1-panel pdp1-bootcfg
+#
+# (pdp1-panel only on a machine with the real panel; pdp1-bootcfg only if
+# the machine should load a boot tape on its own).
+
+disable pdp1.service
+disable pdp1-panel.service
+disable pdp1-bootcfg.service

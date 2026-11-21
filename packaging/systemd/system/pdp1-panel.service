@@ -1,0 +1,22 @@
+[Unit]
+Description=PiDP-1 physical front panel driver
+Documentation=man:pdp1
+# The real PiDP-1 cabinet's panel (newpanel/panel_pidp1); desktop users get
+# their panel from pdp1control instead. Enable this one only on a cabinet --
+# started without the hardware it exits at once and Restart= cycles it.
+Wants=pdp1.service
+After=pdp1.service
+
+[Service]
+Type=simple
+# The group owns /dev/gpiochipN (60-pidp1-mods.rules) and /dev/gpiomem, so
+# the driver needs no more than this.
+User=pidp1-mods
+Group=pidp1-mods
+ExecStart=/usr/libexec/pidp1-mods/panel_pidp1
+Restart=on-failure
+RestartSec=3
+NoNewPrivileges=yes
+
+[Install]
+WantedBy=multi-user.target
