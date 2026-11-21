@@ -101,7 +101,7 @@ extern bool doSymtab;
 extern int lineno;
 extern char *filenameP;
 extern const char *internFileName(const char *nameP);  // lexfuncs.c: a file name that stays
-extern char *incroot;
+extern char incroot[];
 extern PNodeP rootP;
 
 int setConstPC(int pc, SymNodeP symP);

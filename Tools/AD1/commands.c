@@ -59,7 +59,7 @@ extern Dispatch dispatchTable[];
 extern Dispatch extraHelpTable[];
 extern int isBreakpoint(int addr);
 
-extern int getMapForFileNo(MapEntryP mapP, int fileNo);
+extern MapEntryP getMapForFileNo(MapEntryP mapP, int fileNo);
 extern MapEntryP getLinesFromAddress(int address);
 extern int getCurrentPC(void);
 extern char *getFormat(int fmt);

@@ -660,7 +660,7 @@ u64 lastCycleCount;
 u64 currentCycleCount;
 u64 expectedCycles;
 u64 currentTime, dbgLastTime;       // used for timing data
-u64 compStart, compEnd, compUs;     // used for compute-loop timing data
+u64 compStart = 0, compEnd = 0, compUs;     // used for compute-loop timing data
 PanelLightsP lightsP;
 PanelP panelP;
 struct sched_param sp;
@@ -858,7 +858,7 @@ void*
 panelthread(void *arg)
 {
 int rt = 0;
-u64 startTime, lastTime, now, delta, elapsed, loopCount;    // timing data
+u64 startTime = 0, lastTime, now, delta, elapsed, loopCount;    // timing data
 u64 loopUs, loopMin, loopMax;
 pthread_t th;
 PanelLights panel;

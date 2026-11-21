@@ -33,7 +33,7 @@ int yyerror(const char *errstr);
 
 extern int getLineFromAddress(int address, int fileno);
 extern void formatAndPrintOne(char fmt, int val2P);
-extern void formatAndPrintTwo(char fmt, int valP, int fmt2, int val2P);
+extern void formatAndPrintTwo(int fmt1, int addr, int fmt2, int value);
 extern int eval(int op, int lval, int rval);
 extern int yylex(void);
 extern SymbolP findSymbolByName(int bank, int fileno, char *nameP);

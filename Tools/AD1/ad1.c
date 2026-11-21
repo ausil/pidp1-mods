@@ -171,7 +171,7 @@ extern char *lstNameP;
 extern char *symNameP;
 
 extern int parseAndExecute(char *lineP);
-extern int getMapForFileNo(MapEntryP mapP, int fileNo);
+extern MapEntryP getMapForFileNo(MapEntryP mapP, int fileNo);
 extern int signExtend(int oc);
 extern int twosCompl(int val);
 extern int getNumber(char *strP, int base);
@@ -182,7 +182,7 @@ extern char *findNameByAddr(u32 addr);
 extern char *decodeInstr(int word, int addr, bool asMacro, char *separatorP, char *symbolP, char *resultP, int *flagsP);
 extern bool loadFileMap(bool fromLst, char *filenameP);
 extern void closeFiles(void);
-extern void listFn(int arg, MapEntryP mapP);
+extern void listFn(int lineNo, int fileNo);
 extern MapEntryP getLinesFromAddress(int addr);
 extern FileInfoP newFile(char *nameP);
 extern FileInfoP getFileInfoP(int fileNo);
@@ -403,7 +403,7 @@ char line[256];
         if( line[0] == '\n' )
         {
             // empty line, means same as list with no arg.
-            listFn(NOARG, NIL);
+            listFn(NOARG, NOARG);
             continue;
         }
 

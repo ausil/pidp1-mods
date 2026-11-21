@@ -69,10 +69,9 @@ int
 main(int argc, char **argv)
 {
 int i, j;
-int opt;
 int trackNo = 0;
-int cur_addr;
-int end_addr;               // for BIN loader
+int cur_addr = 0;
+int end_addr = 0;           // for BIN loader
 int start_addr = 4;         // for macro start, can come from RIM if no BIN blocks, 4 is the default if none
 bool am1Mode = false;
 char *filenameP;
@@ -81,7 +80,6 @@ char imageName[512];
 char label[128];
 Word word;
 
-bool did_start = false;
 FILE *fP;
 int outfd;
 
