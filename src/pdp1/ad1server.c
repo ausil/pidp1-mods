@@ -712,21 +712,42 @@ bool live;
 static void
 acceptClient(Session *sP, int which)
 {
-struct sockaddr_in peer;
+union
+{
+    struct sockaddr sa;
+    struct sockaddr_in in4;
+    struct sockaddr_in6 in6;
+} peer;
 socklen_t plen;
-char ip[INET_ADDRSTRLEN];
+char ip[INET6_ADDRSTRLEN];
 char who[96];
 int fd;
 
     plen = sizeof(peer);
-    fd = accept(listenFds[which], (struct sockaddr *)&peer, &plen);
+    fd = accept(listenFds[which], &peer.sa, &plen);
     if( fd < 0 )
     {
         return;
     }
 
-    inet_ntop(AF_INET, &peer.sin_addr, ip, sizeof(ip));
-    snprintf(who, sizeof(who), "%s:%u on the %s port", ip, (unsigned)ntohs(peer.sin_port), listenNames[which]);
+    // The listeners answer both families; a v4 peer of a dual-stack socket arrives as the
+    // mapped ::ffff:a.b.c.d and is named with the dotted quad the operator expects.
+    if( (peer.sa.sa_family == AF_INET6) && IN6_IS_ADDR_V4MAPPED(&peer.in6.sin6_addr) )
+    {
+        inet_ntop(AF_INET, &peer.in6.sin6_addr.s6_addr[12], ip, sizeof(ip));
+    }
+    else if( peer.sa.sa_family == AF_INET6 )
+    {
+        inet_ntop(AF_INET6, &peer.in6.sin6_addr, ip, sizeof(ip));
+    }
+    else
+    {
+        inet_ntop(AF_INET, &peer.in4.sin_addr, ip, sizeof(ip));
+    }
+
+    snprintf(who, sizeof(who), "%s:%u on the %s port", ip,
+             (unsigned)ntohs((peer.sa.sa_family == AF_INET6) ? peer.in6.sin6_port : peer.in4.sin_port),
+             listenNames[which]);
     tuneSocket(fd);
 
     if( (sP->fd >= 0) || (atomic_load(&clientState) != CS_NONE) )
@@ -861,13 +882,52 @@ int64_t left;
     return( NULL );
 }
 
-// Bind a listening socket on addr:port. Returns the fd, or -1 (and says why on stderr).
+// Bind a listening socket on addr:port, which is INADDR_ANY for the remote port or
+// INADDR_LOOPBACK for the local one. IPv6 answers first, with IPV6_V6ONLY off so one socket
+// takes both families -- the loopback binding is ::1, and a v4 connection to 127.0.0.1 is
+// still caught as its mapped address -- and a kernel with IPv6 disabled (EAFNOSUPPORT) comes
+// back to IPv4. The loopback-only promise of the local port is the bind itself, in either
+// family. Returns the fd, or -1 (and says why on stderr).
 static int
 openListener(uint32_t addr, int port, const char *nameP)
 {
 struct sockaddr_in sin;
+struct sockaddr_in6 sin6;
 int fd;
 int on;
+
+    fd = socket(AF_INET6, SOCK_STREAM | SOCK_CLOEXEC, 0);
+    if( fd >= 0 )
+    {
+        on = 1;
+        setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &on, sizeof(on));
+        on = 0;
+        setsockopt(fd, IPPROTO_IPV6, IPV6_V6ONLY, &on, sizeof(on));
+
+        memset(&sin6, 0, sizeof(sin6));
+        sin6.sin6_family = AF_INET6;
+        sin6.sin6_addr = (addr == INADDR_LOOPBACK) ? in6addr_loopback : in6addr_any;
+        sin6.sin6_port = htons((uint16_t)port);
+
+        if( (bind(fd, (struct sockaddr *)&sin6, sizeof(sin6)) == 0) && (listen(fd, 4) == 0) )
+        {
+            return( fd );
+        }
+
+        if( errno != EAFNOSUPPORT )
+        {
+            fprintf(stderr, "pidp1: debugger %s port %d unavailable: %s\n", nameP, port, strerror(errno));
+            close(fd);
+            return( -1 );
+        }
+
+        close(fd);
+    }
+    else if( errno != EAFNOSUPPORT )
+    {
+        fprintf(stderr, "pidp1: debugger %s port %d: socket failed: %s\n", nameP, port, strerror(errno));
+        return( -1 );
+    }
 
     fd = socket(AF_INET, SOCK_STREAM | SOCK_CLOEXEC, 0);
     if( fd < 0 )

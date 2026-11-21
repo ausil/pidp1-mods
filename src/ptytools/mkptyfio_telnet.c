@@ -265,8 +265,38 @@ serve1(int port)
 {
 	int sockfd, confd;
 	socklen_t len;
-	struct sockaddr_in server, client;
+	struct sockaddr_storage client;
+	struct sockaddr_in server;
+	struct sockaddr_in6 server6;
 	int x;
+
+	// One IPv6 socket with IPV6_V6ONLY off answers both families, v4 arriving as the
+	// mapped ::ffff:a.b.c.d; the accepted address is never inspected here. A kernel with
+	// IPv6 disabled (EAFNOSUPPORT) gets the IPv4 socket the tool has always used.
+	sockfd = socket(AF_INET6, SOCK_STREAM, 0);
+	if(sockfd >= 0){
+		x = 1;
+		setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, (void *)&x, sizeof x);
+		x = 0;
+		setsockopt(sockfd, IPPROTO_IPV6, IPV6_V6ONLY, (void *)&x, sizeof x);
+
+		memset(&server6, 0, sizeof(server6));
+		server6.sin6_family = AF_INET6;
+		server6.sin6_addr = in6addr_any;
+		server6.sin6_port = htons(port);
+		if(bind(sockfd, (struct sockaddr*)&server6, sizeof(server6)) == 0){
+			goto listened;
+		}
+		if(errno != EAFNOSUPPORT){
+			perror("error: bind");
+			return -1;
+		}
+		close(sockfd);
+	}
+	else if(errno != EAFNOSUPPORT){
+		perror("error: socket");
+		return -1;
+	}
 
 	sockfd = socket(AF_INET, SOCK_STREAM, 0);
 	if(sockfd < 0){
@@ -285,6 +315,7 @@ serve1(int port)
 		perror("error: bind");
 		return -1;
 	}
+listened:
 	listen(sockfd, 5);
 	len = sizeof(client);
 	confd = accept(sockfd, (struct sockaddr*)&client, &len);

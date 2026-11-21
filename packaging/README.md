@@ -69,11 +69,14 @@ the ports.
 
 ## Remote access
 
-Every server in the package binds to all interfaces — a `pdpsrv` or a
-`t30dpy` on another machine reaching the emulator is the design — so remote
-use needs no code, only firewall openings, and a machine with no firewall
-running exposes all of it to the LAN. Loopback always works and needs
-nothing; the cabinet and the `bin/` scripts are all `127.0.0.1`.
+Every server in the package binds to all interfaces on both address
+families — one IPv6 socket per port also takes IPv4, and a kernel without
+IPv6 falls back to a v4-only socket — so a `pdpsrv` or a `t30dpy` on
+another machine reaching the emulator is the design, and remote use needs
+no code, only firewall openings, and a machine with no firewall running
+exposes all of it to the LAN. Loopback works on `localhost`, `127.0.0.1`
+and `::1` and needs nothing; the cabinet and the `bin/` scripts are all
+`127.0.0.1`.
 
 The remote operator installs just the clients, SDL2 and nothing else from us:
 

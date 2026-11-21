@@ -65,7 +65,7 @@
 
 Name:           pidp1-mods
 Version:        1.0
-Release:        1.%{srcdate}%{?dist}
+Release:        2.%{srcdate}%{?dist}
 Summary:        PDP-1 simulator, PiDP-1 panel drivers, assembler and tools
 License:        MIT AND BSD-2-Clause
 URL:            https://github.com/ausil/pidp1-mods
@@ -468,6 +468,16 @@ udevadm control --reload-rules 2>/dev/null || :
 %config(noreplace) %{_sysconfdir}/pidp1-mods/t30dpy.config
 
 %changelog
+* Sat Nov 21 2026 Dennis Gilmore <dennis@ausil.us> - 1.0-2.20261121
+- The servers listen on IPv6, and on IPv4 through it: one dual-family
+  socket per port (IPV6_V6ONLY off), with the IPv4-only socket kept as
+  the fallback for kernels with IPv6 disabled. Covers pdp1's ports, the
+  typewriter, the peripheral port and tapevis through common.c's
+  listenQuietly(); ad1server's listeners bind the same way, so the local
+  debugger port stays loopback-only in either family. telnet localhost
+  and [::1] now reach the console directly. Release 2 of today's
+  snapshot for the re-upload.
+
 * Sat Nov 21 2026 Dennis Gilmore <dennis@ausil.us> - 1.0-1.20261121
 - tapes/ and bootcfg/ moved from /usr/share to /var/lib/pidp1-mods, as
   %%config(noreplace) package content: site edits survive upgrades (the

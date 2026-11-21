@@ -73,10 +73,10 @@ struct pollfd pfd;
     return( (poll(&pfd, 1, 0) > 0) && ((pfd.revents & POLLIN) != 0) );
 }
 
-// Opens a TCP socket listening on port on every interface, printing nothing, so a caller that
-// retries can report once. Returns the socket, or -1 with errno set.
+// Opens an IPv4 TCP socket listening on port on every interface, printing nothing. Returns
+// the socket, or -1 with errno set. The IPv6 half is listen6(); listenQuietly() picks.
 static int
-listenQuietly( int port )
+listen4( int port )
 {
 int x;
 int fd;
@@ -104,6 +104,66 @@ struct sockaddr_in server;
         close( fd );
         errno = err;
         return( -1 );
+    }
+
+    return( fd );
+}
+
+// The same, on AF_INET6 with IPV6_V6ONLY turned off: one socket answers both families, the
+// v4 connections arriving as the mapped address ::ffff:a.b.c.d. Nothing at the other end of
+// these ports inspects the peer to decide anything -- serve1()/serveN() discard the accepted
+// address, the debugger's local port is restricted by its bind rather than a peer test, and
+// ad1server formats an address only to name a session, in both families.
+static int
+listen6( int port )
+{
+int x;
+int fd;
+int err;
+struct sockaddr_in6 server;
+
+    fd = socket( AF_INET6, SOCK_STREAM, 0 );
+
+    if( fd < 0 )
+    {
+        return( -1 );
+    }
+
+    x = 1;
+    setsockopt( fd, SOL_SOCKET, SO_REUSEADDR, (void *) &x, sizeof x );
+    x = 0;
+    setsockopt( fd, IPPROTO_IPV6, IPV6_V6ONLY, (void *) &x, sizeof x );
+
+    memset( &server, 0, sizeof(server) );
+    server.sin6_family = AF_INET6;
+    server.sin6_addr = in6addr_any;
+    server.sin6_port = htons( port );
+
+    if( (bind(fd, (struct sockaddr *) &server, sizeof(server)) < 0) || (listen(fd, LISTENBACKLOG) < 0) )
+    {
+        err = errno;
+        close( fd );
+        errno = err;
+        return( -1 );
+    }
+
+    return( fd );
+}
+
+// Opens a TCP socket listening on port on every interface, printing nothing, so a caller that
+// retries can report once. Returns the socket, or -1 with errno set. IPv6 is tried first and a
+// kernel with it disabled (socket() or bind() giving EAFNOSUPPORT) comes back to the IPv4-only
+// socket this program has always had; every other error is the caller's to report.
+static int
+listenQuietly( int port )
+{
+int fd;
+
+    fd = listen6( port );
+
+    if( fd < 0 && errno == EAFNOSUPPORT )
+    {
+        fd = listen4( port );
     }
 
     return( fd );
@@ -285,7 +345,7 @@ serve1( int port )
 int sockfd, confd;
 int err;
 socklen_t len;
-struct sockaddr_in client;
+struct sockaddr_storage client;
 
     sockfd = listenQuietly( port );
 
@@ -372,7 +432,7 @@ int ret;
 int missing;
 int confd;
 socklen_t len;
-struct sockaddr_in client;
+struct sockaddr_storage client;
 struct pollfd pfds[100];
 char reported[100];
 
