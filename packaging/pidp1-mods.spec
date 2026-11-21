@@ -55,8 +55,6 @@
 
 %global srcdate 20261115
 
-%global debug_package %{nil}
-
 Name:           pidp1-mods
 Version:        1.0
 Release:        1.%{srcdate}%{?dist}
@@ -183,15 +181,6 @@ install -m 755 web_pdp1/pdpsrv                   $libexec/
 
 mkdir -p $iotdir
 install -m 755 IOTs/*.so $iotdir/
-
-# debug_package is off, so nothing else would take the symbol tables: strip
-# every installed ELF (the head test skips the scripts and symlinks; the
-# tools' install rules already stripped their own copies in bin/)
-for f in $libexec/* $iotdir/* %{buildroot}%{_bindir}/*; do
-    if [ -f "$f" ] && [ "$(head -c 4 "$f" | tr -d '\000-\040\177')" = ELF ]; then
-        strip -s "$f"
-    fi
-done
 
 # ---------------------------------------------------------------------------
 # Configuration and state. The writable bits are group pidp1-mods (created by

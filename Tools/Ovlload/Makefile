@@ -20,7 +20,10 @@ all: ovlload
 
 install: ovlload
 	cp ovlload ../../bin
+# RPM builds keep the symbols for find-debuginfo(): strip is a checkout-time thing.
+ifndef RPM_BUILD_ROOT
 	strip ../../bin/ovlload
+endif
 
 # ovlwriter.h is checked in, so building ovlload needs no am1; it has no rule of its own,
 # and only the writer target makes it again.

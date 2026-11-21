@@ -24,7 +24,10 @@ tools:
 
 install: pdp1audio
 	cp pdp1audio ../bin
+# RPM builds keep the symbols for find-debuginfo(): strip is a checkout-time thing.
+ifndef RPM_BUILD_ROOT
 	strip ../bin/pdp1audio
+endif
 
 clean:
 	rm -f *.o pdp1audio

@@ -112,7 +112,8 @@ build IOTs clean
 build IOTs all
 
 # ---------------------------------------------------------------------------
-# Tools. Each has its own install rule that copies (and strips) into bin/; their
+# Tools. Each has its own install rule that copies (and strips, outside an RPM
+# build) into bin/; their
 # cleans are run afterwards so only bin/ holds binaries, not the source directories.
 # ---------------------------------------------------------------------------
 build Tools/UtilLibs

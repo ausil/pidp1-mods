@@ -26,7 +26,10 @@ clean:
 
 install: ad1
 	cp ad1 ../../bin
+# RPM builds keep the symbols for find-debuginfo(): strip is a checkout-time thing.
+ifndef RPM_BUILD_ROOT
 	strip ../../bin/ad1
+endif
 
 ad1.o: ad1.c ad1.h target.h $(UTILLIBS)/ad1link.h helpmsgs.h y.tab.h $(UTILLIBS)/flexoConversion.h
 	$(CC) $(CFLAGS) -c ad1.c

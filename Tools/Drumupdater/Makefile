@@ -15,8 +15,11 @@ all: drumupdater drumlist
 install: drumupdater drumlist
 	cp drumupdater ../../bin
 	cp drumlist ../../bin
+# RPM builds keep the symbols for find-debuginfo(): strip is a checkout-time thing.
+ifndef RPM_BUILD_ROOT
 	strip ../../bin/drumupdater
 	strip ../../bin/drumlist
+endif
 
 drumupdater: drumupdater.c
 	$(CC) $(CFLAGS) drumupdater.c -o drumupdater

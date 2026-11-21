@@ -16,4 +16,8 @@ for F in $(find * -type d -not -name Tests); do
     ( cd "$F" && pwd && make install ) || exit 1
 done
 
-strip --strip-unneeded *.so
+# An RPM build must keep the symbols: find-debuginfo() extracts them from
+# the installed tree, so this stays a checkout-time trim only.
+if [ -z "$RPM_BUILD_ROOT" ]; then
+	strip --strip-unneeded *.so
+fi

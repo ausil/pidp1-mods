@@ -11,7 +11,10 @@ all: disassemble
 
 install: disassemble
 	cp disassemble ../../bin/disassemble
+# RPM builds keep the symbols for find-debuginfo(): strip is a checkout-time thing.
+ifndef RPM_BUILD_ROOT
 	strip ../../bin/disassemble
+endif
 
 test: disassemble
 	Tests/run_tests.sh -d disassemble -w $(TESTDIR)

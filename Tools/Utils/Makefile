@@ -9,11 +9,20 @@ all: mtp fstool asr33tape
 
 install: mtp fstool asr33tape
 	cp mtp ../../bin/mtp
+# RPM builds keep the symbols for find-debuginfo(): strip is a checkout-time thing.
+ifndef RPM_BUILD_ROOT
 	strip ../../bin/mtp
+endif
 	cp fstool ../../bin/fstool
+# RPM builds keep the symbols for find-debuginfo(): strip is a checkout-time thing.
+ifndef RPM_BUILD_ROOT
 	strip ../../bin/fstool
+endif
 	cp asr33tape ../../bin/asr33tape
+# RPM builds keep the symbols for find-debuginfo(): strip is a checkout-time thing.
+ifndef RPM_BUILD_ROOT
 	strip ../../bin/asr33tape
+endif
 
 mtp: mtp.c
 	$(CC) $(CFLAGS) mtp.c -o mtp

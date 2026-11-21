@@ -7,7 +7,10 @@ all: mactoam1
 
 install: mactoam1
 	cp mactoam1 ../../bin/mactoam1
+# RPM builds keep the symbols for find-debuginfo(): strip is a checkout-time thing.
+ifndef RPM_BUILD_ROOT
 	strip ../../bin/mactoam1
+endif
 
 mactoam1: mactoam1.o m1engine.o
 	$(CC) $(CFLAGS) -o mactoam1 mactoam1.o m1engine.o

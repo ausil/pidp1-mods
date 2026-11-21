@@ -11,7 +11,10 @@ CC ?= cc
 CFLAGS ?= -O2 -g -Wall -Wextra
 
 install: mkmicrotape
+# RPM builds keep the symbols for find-debuginfo(): strip is a checkout-time thing.
+ifndef RPM_BUILD_ROOT
 	strip mkmicrotape
+endif
 	cp mkmicrotape ../../bin
 
 mkmicrotape: mkmicrotape.c transport555.c transport555.h

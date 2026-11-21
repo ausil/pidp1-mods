@@ -52,8 +52,11 @@ clean:
 install: am1 fastload
 	cp am1 ../../bin
 	cp fastload ../../bin
+# RPM builds keep the symbols for find-debuginfo(): strip is a checkout-time thing.
+ifndef RPM_BUILD_ROOT
 	strip ../../bin/am1
 	strip ../../bin/fastload
+endif
 
 permsyms.def.o: permsyms.def.c
 	$(CC) $(CFLAGS) -c permsyms.def.c

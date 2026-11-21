@@ -43,7 +43,10 @@ install: installdpy3
 else
 install: t30dpy
 	cp t30dpy ../../bin
+# RPM builds keep the symbols for find-debuginfo(): strip is a checkout-time thing.
+ifndef RPM_BUILD_ROOT
 	strip ../../bin/t30dpy
+endif
 endif
 endif
 
@@ -71,6 +74,9 @@ clean:
 # The SDL3 version, installed under the SDL2 version's name so everything that starts t30dpy gets it.
 installdpy3: t30dpy3
 	cp t30dpy3 ../../bin/t30dpy
+# RPM builds keep the symbols for find-debuginfo(): strip is a checkout-time thing.
+ifndef RPM_BUILD_ROOT
 	strip ../../bin/t30dpy
+endif
 
 .PHONY: all install installdpy3 clean
