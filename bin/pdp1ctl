@@ -10,8 +10,17 @@
 . "${PIDP1_ENV:-$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")/pidp1-env.sh}"
 
 PDP1_DIR="$PIDP1_STATEDIR"
+# Each line goes to the engine's command port, 1040, and to the front end's, 1050
+# (pdp1_periphES, tapevis or pdpsrv), when one is running.
+# The engine is the machine, so a line it does not take is a failure. A front end
+# is optional -- a headless cabinet runs pdp1.service with none -- so 1050 is sent
+# quietly and its refusal is not one; the exit status says whether 1040 took
+# every line.
 # a bit crappy. pdp1 should be able to handle multiple lines
+rc=0
 while IFS= read -r line; do
-	echo "$line" | sed "s:PDP1_DIR:${PDP1_DIR}:g" | ncat -w 1 localhost 1040 
-	echo "$line" | sed "s:PDP1_DIR:${PDP1_DIR}:g" | ncat -w 1 localhost 1050 
+	line=$(printf '%s\n' "$line" | sed "s:PDP1_DIR:${PDP1_DIR}:g")
+	printf '%s\n' "$line" | ncat -w 1 localhost 1040 || rc=1
+	printf '%s\n' "$line" | ncat -w 1 localhost 1050 >/dev/null 2>&1
 done
+exit $rc
