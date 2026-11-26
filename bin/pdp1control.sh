@@ -12,6 +12,8 @@
 #    start refuses while one is already running, restart no longer sleeps
 # 07-Nov-26 wje (Claude) the soroban choice: start the Soroban typewriter terminal with web or
 #    apps, when there is a desktop
+# 26-Nov-26 (Claude) a machine pdp1.service runs is up, not down: stat and the menu say so and
+#    how to reach it, and start, stop and restart leave it to systemctl
 
 # Where everything is: see bin/pidp1-env.sh, which the environment overrides. Once installed
 # the read-only data (the helper scripts, the web assets) and the writable state (the drum
@@ -122,6 +124,30 @@ is_running() {
 	return $procs
 }
 
+# True while pdp1.service runs the machine. Its screen session is the pidp1 account's, in that
+# account's own socket directory, so is_running never sees it from any other user; the service
+# is asked instead. Such a machine is started and stopped with systemctl, not from here.
+service_running() {
+	command -v systemctl > /dev/null 2>&1 &&
+		systemctl is-active --quiet pdp1.service 2> /dev/null
+}
+
+# Say who runs the machine and how to reach it, for a pdp1.service one.
+service_note() {
+	echo "PiDP-1 is up, run by pdp1.service." >&2
+	echo "  pdp1                          attach to its console (Ctrl-A d to leave)" >&2
+	echo "  sudo systemctl stop pdp1      stop it (restart, to start it again)" >&2
+}
+
+# Refuse start, stop and restart while the service has the machine: a second pdp1 would
+# fail, and this user cannot end the service's.
+refuse_if_service() {
+	if service_running; then
+		service_note
+		exit 1
+	fi
+}
+
 # True while any pdp1 process runs, in screen or not. One that has exited but is not yet
 # reaped (state Z) holds nothing, so it does not count.
 pdp1_running() {
@@ -129,6 +155,11 @@ pdp1_running() {
 }
 
 do_stat() {
+	if service_running; then
+		service_note
+		status=1
+		return $status
+	fi
 	is_running
 	status=$?
 	if [ $status -gt 0 ]; then
@@ -507,14 +538,17 @@ do_soroban() {
 
 case "$1" in
   start)
+	refuse_if_service
 	do_start $1 $2
 	;;
 
   stop)
+	refuse_if_service
 	do_stop
 	;;
 
   restart)
+	refuse_if_service
 	do_stop
 	do_start $1 $2
 	;;
@@ -561,6 +595,8 @@ case "$1" in
 	;;
   *)
 	do_stat
+	# A pdp1.service machine is not this script's to stop: do_stat has said how.
+	service_running && exit 0
 	if [ $status = 0 ]; then
 		read -p "(S)tart, Start with boot (number), or (C)ancel? " respx
 		#read -p "(S)tart or (C)ancel? " respx
