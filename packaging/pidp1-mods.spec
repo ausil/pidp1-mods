@@ -72,7 +72,7 @@
 
 Name:           pidp1-mods
 Version:        1.0
-Release:        5.%{srcdate}%{?dist}
+Release:        6.%{srcdate}%{?dist}
 Summary:        PDP-1 simulator, PiDP-1 panel drivers, assembler and tools
 License:        MIT AND BSD-2-Clause
 URL:            https://github.com/ausil/pidp1-mods
@@ -162,6 +162,10 @@ rm -f $datadir/web_pdp1/pdpsrv                 # built binary belongs in libexec
 cp -a pdp23drum.example pidp1.config.example $datadir/
 mkdir -p $datadir/src/pdp1_periph
 install -m 644 src/pdp1_periph/DejaVuSansMono.ttf $datadir/src/pdp1_periph/
+# pdp1central reads its settings schema from the data directory at startup,
+# and refuses to run without it
+mkdir -p $datadir/src/pdp1central
+install -m 644 src/pdp1central/pidp1config.schema $datadir/src/pdp1central/
 
 # bin/ keeps only the scripts: pdp1central runs bin/pdp1control.sh, bin/askfile
 # and bin/save_ptp.sh from here, and the scripts source bin/pidp1-env.sh.
@@ -508,6 +512,20 @@ udevadm control --reload-rules 2>/dev/null || :
 %config(noreplace) %{_sysconfdir}/pidp1-mods/t30dpy.config
 
 %changelog
+* Thu Nov 26 2026 Dennis Gilmore <dennis@ausil.us> - 1.0-6.20261125
+- pdp1central starts: its settings schema, pidp1config.schema, is
+  installed under the data directory, where it looks for it.
+- Fast load works again: the debugger's loopback port, 1044, bound only
+  ::1 since the IPv6 change, and a ::1 socket never takes an IPv4
+  connection, so pdp1central's 127.0.0.1 was refused. The port now has a
+  socket per family, 127.0.0.1 and ::1.
+- pdp1-bootcfg.service no longer fails on a cabinet with no front end
+  running: pdp1ctl sends to the peripheral port, 1050, quietly and as a
+  courtesy, and its exit status is the emulator's port, 1040.
+- pdp1control sees a machine pdp1.service runs: stat and the menu say it
+  is up and how to reach it, and start, stop and restart leave it to
+  systemctl.
+
 * Wed Nov 25 2026 Dennis Gilmore <dennis@ausil.us> - 1.0-5.20261125
 - pdp1.service starts again: screen died at once with "Directory
   '/run/screen' must have mode 777". NoNewPrivileges= suppresses screen's
