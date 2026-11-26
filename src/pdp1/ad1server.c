@@ -118,8 +118,15 @@ _Atomic int ad1Work;
 static bool serverActive;
 static int wakeFd = -1;             // I/O thread to emulator: ends the throttle sleep
 static int txFd = -1;               // emulator to I/O thread: a reply or event is ready
-static int listenFds[2] = { -1, -1 };
-static const char *listenNames[2] = { "loopback", "remote" };
+// The loopback port takes two sockets, one per family: an IPv6 socket bound to ::1 never sees
+// an IPv4 connection, V6ONLY or not (127.0.0.1 arrives as ::ffff:127.0.0.1, which only a ::
+// binding catches). The remote port is one dual-stack socket on ::.
+#define LISTEN_LOCAL4 0
+#define LISTEN_LOCAL6 1
+#define LISTEN_REMOTE 2
+#define LISTEN_COUNT 3
+static int listenFds[LISTEN_COUNT] = { -1, -1, -1 };
+static const char *listenNames[LISTEN_COUNT] = { "loopback", "loopback", "remote" };
 
 static Mailbox mb;
 static uint8_t *reqBufP;
@@ -768,8 +775,8 @@ static void *
 ioThread(void *argP)
 {
 Session s;
-struct pollfd pfds[4];
-int which[4];
+struct pollfd pfds[LISTEN_COUNT + 2];
+int which[LISTEN_COUNT + 2];
 int n;
 int i;
 int timeout;
@@ -794,7 +801,7 @@ int64_t left;
 
         // While a finished session is being cleaned up by the emulator thread, a new
         // connection waits in the listen backlog instead of being refused.
-        for( i = 0; i < 2; ++i )
+        for( i = 0; i < LISTEN_COUNT; ++i )
         {
             if( (listenFds[i] >= 0) && (atomic_load(&clientState) != CS_CLOSING) )
             {
@@ -882,57 +889,55 @@ int64_t left;
     return( NULL );
 }
 
-// Bind a listening socket on addr:port, which is INADDR_ANY for the remote port or
-// INADDR_LOOPBACK for the local one. IPv6 answers first, with IPV6_V6ONLY off so one socket
-// takes both families -- the loopback binding is ::1, and a v4 connection to 127.0.0.1 is
-// still caught as its mapped address -- and a kernel with IPv6 disabled (EAFNOSUPPORT) comes
-// back to IPv4. The loopback-only promise of the local port is the bind itself, in either
-// family. Returns the fd, or -1 (and says why on stderr).
+// Bind and listen on an IPv6 address. v6only says whether the socket keeps to IPv6 (the ::1
+// loopback socket, whose IPv4 twin is separate) or takes v4 too as mapped addresses (the ::
+// remote socket). Returns the fd, or -1 with errno set and nothing said.
 static int
-openListener(uint32_t addr, int port, const char *nameP)
+listen6(const struct in6_addr *addrP, int v6only, int port)
 {
-struct sockaddr_in sin;
 struct sockaddr_in6 sin6;
 int fd;
 int on;
+int err;
 
     fd = socket(AF_INET6, SOCK_STREAM | SOCK_CLOEXEC, 0);
-    if( fd >= 0 )
+    if( fd < 0 )
     {
-        on = 1;
-        setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &on, sizeof(on));
-        on = 0;
-        setsockopt(fd, IPPROTO_IPV6, IPV6_V6ONLY, &on, sizeof(on));
-
-        memset(&sin6, 0, sizeof(sin6));
-        sin6.sin6_family = AF_INET6;
-        sin6.sin6_addr = (addr == INADDR_LOOPBACK) ? in6addr_loopback : in6addr_any;
-        sin6.sin6_port = htons((uint16_t)port);
-
-        if( (bind(fd, (struct sockaddr *)&sin6, sizeof(sin6)) == 0) && (listen(fd, 4) == 0) )
-        {
-            return( fd );
-        }
-
-        if( errno != EAFNOSUPPORT )
-        {
-            fprintf(stderr, "pidp1: debugger %s port %d unavailable: %s\n", nameP, port, strerror(errno));
-            close(fd);
-            return( -1 );
-        }
-
-        close(fd);
-    }
-    else if( errno != EAFNOSUPPORT )
-    {
-        fprintf(stderr, "pidp1: debugger %s port %d: socket failed: %s\n", nameP, port, strerror(errno));
         return( -1 );
     }
+
+    on = 1;
+    setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &on, sizeof(on));
+    setsockopt(fd, IPPROTO_IPV6, IPV6_V6ONLY, &v6only, sizeof(v6only));
+
+    memset(&sin6, 0, sizeof(sin6));
+    sin6.sin6_family = AF_INET6;
+    sin6.sin6_addr = *addrP;
+    sin6.sin6_port = htons((uint16_t)port);
+
+    if( (bind(fd, (struct sockaddr *)&sin6, sizeof(sin6)) < 0) || (listen(fd, 4) < 0) )
+    {
+        err = errno;
+        close(fd);
+        errno = err;
+        return( -1 );
+    }
+
+    return( fd );
+}
+
+// Bind and listen on an IPv4 address (host order). Returns the fd, or -1 with errno set.
+static int
+listen4(uint32_t addr, int port)
+{
+struct sockaddr_in sin;
+int fd;
+int on;
+int err;
 
     fd = socket(AF_INET, SOCK_STREAM | SOCK_CLOEXEC, 0);
     if( fd < 0 )
     {
-        fprintf(stderr, "pidp1: debugger %s port %d: socket failed: %s\n", nameP, port, strerror(errno));
         return( -1 );
     }
 
@@ -946,12 +951,59 @@ int on;
 
     if( (bind(fd, (struct sockaddr *)&sin, sizeof(sin)) < 0) || (listen(fd, 4) < 0) )
     {
-        fprintf(stderr, "pidp1: debugger %s port %d unavailable: %s\n", nameP, port, strerror(errno));
+        err = errno;
         close(fd);
+        errno = err;
         return( -1 );
     }
 
     return( fd );
+}
+
+// Open the loopback port: 127.0.0.1 and ::1, each on its own socket, so the port stays
+// loopback-only in either family. The IPv4 one is the port: pdp1central, ad1 and am1 reach it
+// as 127.0.0.1 or localhost. ::1 is a courtesy for clients that try IPv6 first, and a host
+// with IPv6 off (no socket, or no ::1 on lo) quietly goes without it. Returns false, having
+// said why, when neither opens.
+static bool
+openLocal(int port)
+{
+    listenFds[LISTEN_LOCAL4] = listen4(INADDR_LOOPBACK, port);
+    if( listenFds[LISTEN_LOCAL4] < 0 )
+    {
+        fprintf(stderr, "pidp1: debugger loopback port 127.0.0.1:%d unavailable: %s\n", port,
+                strerror(errno));
+    }
+
+    listenFds[LISTEN_LOCAL6] = listen6(&in6addr_loopback, 1, port);
+    if( (listenFds[LISTEN_LOCAL6] < 0) && (errno != EAFNOSUPPORT) && (errno != EADDRNOTAVAIL) )
+    {
+        fprintf(stderr, "pidp1: debugger loopback port [::1]:%d unavailable: %s\n", port,
+                strerror(errno));
+    }
+
+    return( (listenFds[LISTEN_LOCAL4] >= 0) || (listenFds[LISTEN_LOCAL6] >= 0) );
+}
+
+// Open the remote port on every interface: one :: socket with IPV6_V6ONLY off takes both
+// families, and a kernel with IPv6 disabled (EAFNOSUPPORT) gets 0.0.0.0 instead. Returns
+// false, having said why, when it cannot open.
+static bool
+openRemote(int port)
+{
+    listenFds[LISTEN_REMOTE] = listen6(&in6addr_any, 0, port);
+    if( (listenFds[LISTEN_REMOTE] < 0) && (errno == EAFNOSUPPORT) )
+    {
+        listenFds[LISTEN_REMOTE] = listen4(INADDR_ANY, port);
+    }
+
+    if( listenFds[LISTEN_REMOTE] < 0 )
+    {
+        fprintf(stderr, "pidp1: debugger remote port %d unavailable: %s\n", port, strerror(errno));
+        return( false );
+    }
+
+    return( true );
 }
 
 // Read a port from the config extras. A missing key gives defaultPort; off, 0 or no gives 0
@@ -988,7 +1040,7 @@ serverRelease(void)
 {
 int i;
 
-    for( i = 0; i < 2; ++i )
+    for( i = 0; i < LISTEN_COUNT; ++i )
     {
         if( listenFds[i] >= 0 )
         {
@@ -1024,6 +1076,8 @@ ad1ServerStart(PDP1 *pdp, ConfigurationP configP)
 pthread_t th;
 int localPort;
 int remotePort;
+bool localOpen;
+bool remoteOpen;
 (void)pdp;
 
     localPort = configPort(configP, "ad1port", AD1P_DEFAULT_LOCAL_PORT);
@@ -1044,17 +1098,9 @@ int remotePort;
         return;
     }
 
-    if( localPort )
-    {
-        listenFds[0] = openListener(INADDR_LOOPBACK, localPort, listenNames[0]);
-    }
-
-    if( remotePort )
-    {
-        listenFds[1] = openListener(INADDR_ANY, remotePort, listenNames[1]);
-    }
-
-    if( (listenFds[0] < 0) && (listenFds[1] < 0) )
+    localOpen = localPort && openLocal(localPort);
+    remoteOpen = remotePort && openRemote(remotePort);
+    if( !localOpen && !remoteOpen )
     {
         serverRelease();
         return;
@@ -1070,12 +1116,20 @@ int remotePort;
     pthread_detach(th);
     serverActive = true;
 
-    if( listenFds[0] >= 0 )
+    if( (listenFds[LISTEN_LOCAL4] >= 0) && (listenFds[LISTEN_LOCAL6] >= 0) )
+    {
+        fprintf(stderr, "pidp1: debugger listening on 127.0.0.1 and [::1], port %d\n", localPort);
+    }
+    else if( listenFds[LISTEN_LOCAL4] >= 0 )
     {
         fprintf(stderr, "pidp1: debugger listening on 127.0.0.1:%d\n", localPort);
     }
+    else if( listenFds[LISTEN_LOCAL6] >= 0 )
+    {
+        fprintf(stderr, "pidp1: debugger listening on [::1]:%d\n", localPort);
+    }
 
-    if( listenFds[1] >= 0 )
+    if( listenFds[LISTEN_REMOTE] >= 0 )
     {
         fprintf(stderr, "pidp1: debugger listening on all interfaces, port %d\n", remotePort);
     }
