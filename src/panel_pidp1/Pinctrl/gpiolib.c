@@ -982,6 +982,26 @@ const char *nameP, *archNameP;
         firstHdrPin = 1;
     }
 
+#ifdef HAVE_GPIOD
+    // The device-tree walk above follows /aliases/gpioN, which only the
+    // Raspberry Pi kernel's device trees carry. Under an upstream device
+    // tree (Fedora's kernel on a Pi 5: the RP1's lines come up unnamed, no
+    // aliases) it finds nothing and numGpios stays 0 - which every caller
+    // reads as "no GPIO" and gives up on, even though the character device
+    // already claimed the header controller and can drive all of it. The
+    // gpiod chip's own line count is the honest answer then.
+    if( (numGpios == 0) && gpiod_backend_active() )
+    {
+        numGpios = gpiod_backend_num_gpios();
+
+        if( verbose_callback )
+        {
+            (*verbose_callback)("  (no device-tree gpio aliases; "
+                "using the libgpiod chip's line count)\n");
+        }
+    }
+#endif
+
     return( (int)numGpios );
 }
 

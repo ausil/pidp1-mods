@@ -28,15 +28,22 @@
 #include "gpiolib.h"
 
 // Opens the panel's GPIO chip. Auto-selects only a chip whose name or label
-// identifies a Broadcom controller; PIDP1_GPIO_CHIP names the chip (e.g.
-// "gpiochip0" or a /dev path) and PIDP1_PANEL_FORCE=1 is the operator's
-// second, deliberate yes to a chip that is not Broadcom. PIDP1_NO_GPIOD=1
+// is exactly one of the 40-pin header controllers (pinctrl-bcm2835,
+// -bcm2711, -rp1); PIDP1_GPIO_CHIP names the chip ("gpiochip4", a /dev path
+// or a chip label) and PIDP1_PANEL_FORCE=1 is the operator's second,
+// deliberate yes to a chip that is not a header controller. PIDP1_NO_GPIOD=1
 // declines the backend entirely (development escape hatch: forces the
 // register path). Returns 1 when a chip was claimed, 0 otherwise.
 int gpiod_backend_probe(void);
 
 // 1 once gpiod_backend_probe() has claimed a chip.
 int gpiod_backend_active(void);
+
+// The claimed chip's line count (capped at MAX_GPIO_PINS), 0 when inactive.
+// gpiolib_init() reports this as the GPIO count when the device tree gave
+// it none: an upstream device tree has no /aliases/gpioN for the register
+// probe to follow, yet the character device can drive every line.
+unsigned gpiod_backend_num_gpios(void);
 
 // Routes the verbose messages through gpiolib's callback.
 void gpiod_backend_set_verbose(void (*callback)(const char *));

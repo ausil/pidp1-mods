@@ -236,6 +236,7 @@ void *panelthread(void *arg);
 void sighandler(int sig);
 void sigReconfigure(int sig);
 int initGPIO(void);
+static void gpioVerbose(const char *msg);
 
 // Create/attach the shared Panel segment, initialize GPIO, then run the panel
 // thread which never returns under normal operation.
@@ -1089,6 +1090,17 @@ struct sched_param params;
     exit(0);
 }
 
+// gpiolib verbose callback (PIDP1_GPIO_VERBOSE): to stderr, newline-terminated
+// whichever backend wrote the message - gpiolib.c ends its own with \n, the
+// libgpiod backend's do not.
+static void
+gpioVerbose(const char *msg)
+{
+    size_t n = strlen(msg);
+
+    fprintf(stderr, "%s%s", msg, (n && (msg[n - 1] == '\n')) ? "" : "\n");
+}
+
 // SIGINT/SIGTERM handler: requests a clean shutdown of panelthread()'s main loop.
 void
 sighandler(int sig)
@@ -1110,15 +1122,31 @@ sigReconfigure(int sig)
 int
 initGPIO(void)
 {
+    // PIDP1_GPIO_VERBOSE=1 shows which chip the driver picked, or why it
+    // turned each one down - the only way to see that, since a driver that
+    // finds no panel otherwise just exits.
+    if( getenv("PIDP1_GPIO_VERBOSE") && strcmp(getenv("PIDP1_GPIO_VERBOSE"), "0") )
+    {
+        gpiolib_set_verbose(gpioVerbose);
+    }
+
     int ngpio = gpiolib_init();
 
+    // Both failures used to return silently, and test.sh and pdp1control
+    // start this in the background - a panel that never lit said nothing.
     if(ngpio <= 0)
     {
+        fprintf(stderr, "panel_pidp1: no usable GPIO controller found (%s); "
+            "rerun with PIDP1_GPIO_VERBOSE=1 for the chip probe, and compare "
+            "gpiodetect and ls -l /dev/gpiochip*\n",
+            ngpio < 0 ? "GPIO setup failed" : "no GPIOs");
         return(1);
     }
 
     if(gpiolib_mmap())
     {
+        fprintf(stderr, "panel_pidp1: cannot map the GPIO registers and no "
+            "libgpiod chip was claimed; rerun with PIDP1_GPIO_VERBOSE=1\n");
         return(1);
     }
 
