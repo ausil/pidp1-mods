@@ -20,18 +20,21 @@ The single source of truth for where things live is the pair
 | Home | Contents |
 |---|---|
 | `/usr/share/pidp1-mods` | read-only tree mirror: `bin/` scripts, `Microtapes/`, `Drums/`, `Docs/`, `Am1Includes/`, `FunStuff/`, `web_pdp1/` |
-| `/var/lib/pidp1-mods` | what the machine reads and writes: `pdp23drum`, `coremem`, `punch.out`, and the shipped `tapes/` library and `bootcfg/` — package-owned `%config(noreplace)` content, group-owned by `pidp1-mods` so the operators can edit it: site edits survive upgrades (the shipped update lands as `.rpmnew`), files you add yourself are never touched |
+| `/var/lib/pidp1-mods` | what the machine reads and writes: `pdp23drum`, `coremem`, `punch.out`, and the shipped `tapes/` library and `bootcfg/` — package-owned `%config(noreplace)` content, group-owned by `pidp1` so the operators can edit it: site edits survive upgrades (the shipped update lands as `.rpmnew`), files you add yourself are never touched |
 | `/etc/pidp1-mods` | `pidp1.config`, `t30dpy.config`, `microtapes.txt`, `usb_paper_tape_ports.cfg` - `%config(noreplace)` |
 | `/usr/lib/pidp1-mods/IOTs` | the `.so` plugins the emulator `dlopen()`s (plain `/usr/lib` on every arch: absolute-path plugins are not the dynamic linker's business) |
 | `/usr/libexec/pidp1-mods` | `pdp1`, panel drivers, peripheral simulators, `pdpsrv` - what the scripts start |
-| `/usr/bin` | the user commands and the `man` front doors `pdp1` and `pdp1control` |
+| `/usr/bin` | the user commands and the `man` front doors `pdp1`, `pdp1control` and `pidp1-test` |
 
-The group `pidp1-mods` (created by the sysusers fragment) owns the writable
-state: the state directory, `/etc/pidp1-mods` (pdp1central saves
-`pidp1.config`), and the `Microtapes/` and `Drums/` data directories the IOTs
-write images into. Add the operators who run the panel:
+The group `pidp1` (created by the sysusers fragment) is the cabinet's
+operator group. It owns the writable state — the state directory,
+`/etc/pidp1-mods` (pdp1central saves `pidp1.config`), and the `Microtapes/`
+and `Drums/` data directories the IOTs write images into — the udev rule
+hands it the panel's GPIO nodes, and the sudoers fragment
+(`/etc/sudoers.d/pidp1-mods`) lets its members attach to the machine's
+console. Add the operators who run the machine:
 
-    usermod -aG pidp1-mods <name>
+    usermod -aG pidp1 <name>
 
 ## Starting the machine at boot
 
@@ -43,13 +46,26 @@ own; the operator enables them once:
 
 | Unit | Runs |
 |---|---|
-| `pdp1.service` | the emulator (`/usr/libexec/pidp1-mods/pdp1`), restarted if it fails |
+| `pdp1.service` | the emulator (`/usr/libexec/pidp1-mods/pdp1`) inside a detached `screen` session named `pidp1`, restarted if it fails |
 | `pdp1-panel.service` | the cabinet's physical panel driver — enable on a real PiDP-1 only; without the hardware it exits and `Restart=` would cycle it |
 | `pdp1-bootcfg.service` | oneshot feeding `bootcfg/<number>.cfg` to the command port, the way `pdp1control start` does |
 
-All three run as the `pidp1-mods` user (added to the sysusers fragment next
-to its group); the group already owns the state directory, `/etc/pidp1-mods`
-and the panel's GPIO nodes, so the units need no privileges. The boot
+All three run as `pidp1` — one name for the service account and the
+operator group alike (a single sysusers line creates both; nothing named
+`pidp1-mods` is a user or group anywhere). The group already owns the state
+directory, `/etc/pidp1-mods` and the panel's GPIO nodes, so the units need
+no privileges. Because the service owns that screen session, `screen` —
+which lets only a session's own user attach — would otherwise lock everyone
+else out of the console: `/etc/sudoers.d/pidp1-mods` allows members of
+`pidp1` exactly `sudo -u pidp1 /usr/libexec/pidp1-mods/pidp1-attach -ls`
+and `... pidp1-attach` (list, and join), and `pdp1` with no arguments falls
+back to those when the caller's own session directory holds no `pidp1`.
+The session is not in `/run/screen`: under `NoNewPrivileges=` screen's
+setgid bit is off, and screen then refuses that directory unless it is mode
+777, so the service keeps its socket in `/run/pidp1/screen` (0700 `pidp1`),
+and the wrapper is what knows that. Anyone who can attach can run
+programs as `pidp1` through screen's `^A :`; membership of `pidp1` is
+trusted-access, not read-only. The boot
 images need no fetching either: the package installs `tapes/` and `bootcfg/`
 straight into `/var/lib/pidp1-mods`, and a new `.rim` dropped into `tapes/`
 is reachable from a `bootcfg/<n>.cfg` via `PDP1_DIR/tapes/`.
@@ -120,13 +136,18 @@ install:
   a machine with real PiDP-1 hardware and a headless box stop wanting the
   same dependency set.
 * The hardware panel driver is shipped without setuid: it drives the panel
-  through libgpiod, and the packaged `60-pidp1-mods.rules`
+  through libgpiod, and the packaged `zz-pidp1-mods.rules`
   (`/usr/lib/udev/rules.d`) hands the panel's controller -
   `pinctrl-bcm2835` on a Pi 4 or earlier, `pinctrl-rp1` on a Pi 5 - to the
-  pidp1-mods group; cabinet users need only `usermod -aG pidp1-mods`. The
-  gpiomem nodes are group-accessible too, for the register backend that
-  still owns anything libgpiod cannot express. `setpriv.sh` remains for the
-  `/dev/mem` fallback on kernels with neither path.
+  pidp1 group; cabinet users need only `usermod -aG pidp1`. The `zz-*`
+  prefix is load-bearing: udev applies whole files in lexicographic order
+  and a node has one group, so on a host that also carries the PiDP-10 or
+  PiDP-11 packaging - whose `99-*` rules claim the very same RP1/bcm2835
+  chip - the last rule standing wins, and no `99-pidp1*` spelling sorts
+  after `99-pidp10`. The gpiomem nodes are group-accessible too, for the
+  register backend that still owns anything libgpiod cannot express.
+  `setpriv.sh` remains for the `/dev/mem` fallback on kernels with neither
+  path.
 * `web_pdp1/vendor/` (gorilla/websocket, BSD-2) is committed so `%build`
   needs no network; that is the package's one vendored blob.
 * rpmlint exceptions, each with its reason, are in `rpmlint.toml` - not in

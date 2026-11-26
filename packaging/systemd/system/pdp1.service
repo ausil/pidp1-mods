@@ -6,13 +6,30 @@ Documentation=man:pdp1
 # is the operator's call (see 90-pidp1-mods.preset).
 
 [Service]
-Type=simple
-# The user and group the sysusers fragment creates; the group already owns
-# the state directory, /etc/pidp1-mods, and the panel's GPIO nodes.
-User=pidp1-mods
-Group=pidp1-mods
-ExecStart=/usr/libexec/pidp1-mods/pdp1
+Type=forking
+# The user and group the sysusers fragment creates (one name, pidp1); the
+# group already owns the state directory, /etc/pidp1-mods, and the panel's
+# GPIO nodes.
+User=pidp1
+Group=pidp1
 WorkingDirectory=/var/lib/pidp1-mods
+# The engine runs inside a detached screen session named pidp1, which is
+# what pdp1control and `pdp1` attach to. As a service the session belongs to
+# the service account, so sharing it is a group matter: the sudoers fragment
+# (/etc/sudoers.d/pidp1-mods) lets members of pidp1 run the one fixed
+# pidp1-attach wrapper as pidp1, which re-pins SCREENDIR and attaches, and
+# bin/pdp1.sh calls exactly that.
+# The session keeps its own socket directory (tmpfiles creates it):
+# NoNewPrivileges= suppresses the setgid gain, and without that effective
+# gid screen rejects the screen RPM's 0775 root:screen /run/screen with
+# "must have mode 777" (a supplementary group does not satisfy the check -
+# the binary's setgid bit is what screen trusts). ExecStart still goes
+# through the pidp1-screen wrapper because init_t is denied execute on
+# screen_exec_t. The wrappers pin SCREENDIR themselves; the Environment=
+# line says the same here so systemctl show tells the whole story.
+Environment=SCREENDIR=/run/pidp1/screen
+ExecStart=/usr/libexec/pidp1-mods/pidp1-screen -dmS pidp1 -h 1000 /usr/libexec/pidp1-mods/pdp1
+ExecStop=/usr/libexec/pidp1-mods/pidp1-stop
 Restart=on-failure
 RestartSec=3
 NoNewPrivileges=yes

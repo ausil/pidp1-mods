@@ -1,7 +1,7 @@
-# /usr/lib/udev/rules.d/60-pidp1-mods.rules
+# /usr/lib/udev/rules.d/zz-pidp1-mods.rules
 #
-# Which device nodes an unprivileged member of the pidp1-mods group may open
-# to drive the PiDP-1 front panel, and nothing else: this is what replaces
+# Which device nodes an unprivileged member of the pidp1 group may open to
+# drive the PiDP-1 front panel, and nothing else: this is what replaces
 # "chmod +s .../newpanel" (src/panel_pidp1/setpriv.sh), so no panel driver is
 # installed setuid root.
 #
@@ -12,8 +12,8 @@
 # machine - a laptop has a dozen, most of them PMIC blocks whose lines are
 # power rails - and re-tagging another package's group is not ours to
 # decide. So, exactly as pidp10's 99-pidp10.rules does, only the controller
-# the panel is actually wired to is re-tagged here, into this package's own
-# group (sysusers.d/30-style fragment pidp1-mods.conf): the 40-pin header
+# the panel is actually wired to is re-tagged here, into the cabinet's
+# operator group (sysusers.d fragment pidp1-mods.conf): the 40-pin header
 # lines are on the SoC GPIO controller on a Pi 4 and earlier
 # (pinctrl-bcm2835) and on the RP1 I/O hub on a Pi 5 (pinctrl-rp1), which is
 # a separate chip and needs its own match. Everywhere else no rule applies,
@@ -21,6 +21,17 @@
 # panel" - the honest answer. Unusual wiring (a GPIO expander) needs a rule
 # of its own (udevadm info -a -n /dev/gpiochipN, then a drop-in here) plus
 # PIDP1_GPIO_CHIP=... PIDP1_PANEL_FORCE=1 to tell the driver which chip.
+#
+# The name is deliberately zz-*, and not by vanity. udev applies whole rule
+# files in lexicographic order and a node has exactly one group, so on a
+# shared host the LAST rule that re-tags the header's chip owns it - and the
+# sibling cabinets ship rules for the very same controller (pidp10's
+# 99-pidp10.rules is why gpiochip4 comes up root:pidp10 once that package is
+# installed, even with ours in place). The panel is wired to pidp1 here, so
+# ours must sort after theirs, and no 99-pidp1* spelling achieves that:
+# udev's version-aware ordering puts "99-pidp1" before "99-pidp10" and
+# "99-pidp11" alike, which is why pidp11 got ahead of pidp10 by digit
+# accident. zz-* sorts after every numbered rule Fedora or any of us ships.
 #
 # The gpiomem line serves the register backend - the historical path, still
 # used for pin functions libgpiod cannot express and still needed where no
@@ -37,6 +48,6 @@
 #  udevadm control --reload && udevadm trigger -c add /dev/gpiochip* /dev/gpiomem*
 
 KERNEL=="gpiochip*", SUBSYSTEM=="gpio", \
-    DRIVERS=="pinctrl-bcm2835|pinctrl-rp1", GROUP="pidp1-mods", MODE="0660"
+    DRIVERS=="pinctrl-bcm2835|pinctrl-rp1", GROUP="pidp1", MODE="0660"
 
-KERNEL=="gpiomem[0-9]*", SUBSYSTEM=="misc", GROUP="pidp1-mods", MODE="0660"
+KERNEL=="gpiomem[0-9]*", SUBSYSTEM=="misc", GROUP="pidp1", MODE="0660"

@@ -10,9 +10,21 @@
 if [ $# -eq 0 ]; then
 
 	procs=`screen -ls pidp1 | grep -E '[0-9]+\.pidp1' | wc -l`
-	echo $procs
 	if [ $procs -ne 0 ]; then
 		screen -Dr pidp1
+	else
+		# On a cabinet the machine is the service's: pdp1.service keeps the
+		# engine in a screen session owned by the pidp1 account, in that
+		# account's own socket directory, and screen lets only that user
+		# attach. The sudoers fragment gives the pidp1 group exactly the two
+		# forms of the pidp1-attach wrapper (look, and join), which knows
+		# where the session lives; -n keeps this quiet when the user is in
+		# neither the session nor the group.
+		attach=/usr/libexec/pidp1-mods/pidp1-attach
+		[ -x "$attach" ] &&
+			sudo -n -u pidp1 "$attach" -ls 2>/dev/null |
+			grep -qE '[0-9]+\.pidp1' &&
+			sudo -n -u pidp1 "$attach"
 	fi
 
 else

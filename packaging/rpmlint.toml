@@ -13,7 +13,9 @@ Filters = [
     # Machine vocabulary, not typos: this is a 1960 computer (DEC manuals,
     # the AI Lab memos). Matched on the quoted token only, so a genuine typo
     # elsewhere still reports.
-    ".*spelling-error \\('(am1|ad1|dpy|env|fiodec|fstool|iot|mactoam1|microtape|mtp|ovlload|pdp|pidp|soroban|src|tapevis|type550)'.*",
+    # gpiochip/libgpiod/newpanel/udev/sudoers: hardware and OS vocabulary
+    # the man pages and comments use; rpmlint's dictionary has no idea.
+    ".*spelling-error \\('(am1|ad1|dpy|env|fiodec|fstool|gpiochip|iot|libgpiod|mactoam1|microtape|mtp|newpanel|ovlload|pdp|pidp|soroban|src|sudoers|tapevis|type550|udev)'.*",
 
     # The per-program Makefiles assemble their own compile lines (that is
     # how the tree has always built, and why -march=native needed an
@@ -23,18 +25,22 @@ Filters = [
     # learns to honour CC/CFLAGS.
     '.*position-independent-executable-suggested .*',
 
-    # pidp1-mods is a new service group created by sysusers.d (the Fedora
-    # guidelines' way). Drop when the name is in rpmlint's users-groups
-    # list, /etc/xdg/rpmlint/users-groups.toml.
-    '.*non-standard-gid .*pidp1-mods.*',
+    # pidp1 is the new cabinet operator group created by sysusers.d (the
+    # Fedora guidelines' way). The old line named pidp1-mods, which only
+    # ever matched because the gid and the paths shared the name; keep the
+    # shape honest. Drop when the name is in rpmlint's users-groups list,
+    # /etc/xdg/rpmlint/users-groups.toml.
+    '.*non-standard-gid .*pidp1.*',
 
-    # Man pages: the two front doors ship their own (man/pdp1.1,
-    # man/pdp1control.1). What is left has no page because it has no
+    # Man pages: the three front doors ship their own (man/pdp1.1,
+    # man/pdp1control.1, man/pidp1-test.1). What is left has no page because it has no
     # interface of its own: the tools are documented in Docs/ and
     # self-describe with usage errors, the dialogs and helpers are what
     # pdp1central and pdp1control call. Drop an entry when a real page
     # exists.
-    '.*no-manual-page-for-binary (ad1|am1|asr33tape|decode_fiodec|disassemble|docviewer|drumlist|drumupdater|encode_fiodec|fastload|fstool|mactoam1|macro1|macro1_1|mkmicrotape|mtp|ovlload|pdp1audio|pdp1central|scanpf|t30dpy|tapevis|tape_visualizer|tkaskopenfile|tkaskopenfilewrite)($| .*)',
+    # pidp1-test has its own page (man/pidp1-test.1); the raw pidp1_test it
+    # runs has none because it is the page's second paragraph.
+    '.*no-manual-page-for-binary (ad1|am1|asr33tape|decode_fiodec|disassemble|docviewer|drumlist|drumupdater|encode_fiodec|fastload|fstool|mactoam1|macro1|macro1_1|mkmicrotape|mtp|ovlload|pdp1audio|pdp1central|pidp1_test|scanpf|t30dpy|tapevis|tape_visualizer|tkaskopenfile|tkaskopenfilewrite)($| .*)',
 
     # The Exec= lines open a terminal emulator (lxterminal) and telnet that
     # are Requires of the main package - a desktop box must get the icons
@@ -42,17 +48,17 @@ Filters = [
     # in /usr/share/pidp1-mods/bin, owned by this package.
     '.*desktopfile-without-binary .*(lxterminal|telnet|nohup)($| .*)',
 
-    # The versioned group(pidp1-mods) provide comes from the sysusers
-    # fragment, the unversioned duplicate from the file-owner generators;
-    # the package must own the state dirs and name the group, so no spec
-    # change removes the second one.
-    '.*useless-provides group\(pidp1-mods\).*',
+    # The versioned group(pidp1)/user(pidp1) provides come from the
+    # sysusers fragment, the unversioned duplicates from the file-owner
+    # generators; the package must own the state dirs and name the group,
+    # so no spec change removes the second one.
+    '.*useless-provides (group\(pidp1\)|user\(pidp1\)).*',
 
-    # Release carries the snapshot segment (srcdate) that a hand-written
-    # changelog entry cannot know; the version matches. The alternatives are
-    # %autochangelog (hides the curated entries) or editing the changelog on
-    # every build.
-    '.*incoherent-version-in-changelog .*1\.0-1.*',
+    # Release carries the snapshot segment (srcdate) and the dist tag that a
+    # hand-written changelog entry cannot know; the version and release
+    # number match. The alternatives are %autochangelog (hides the curated
+    # entries) or editing the changelog on every build.
+    '.*incoherent-version-in-changelog .*1\.0-[0-9]+\.[0-9]{8}.*',
 
     # Source0 has no URL because there is nothing to download: it is a git
     # archive of this repository, made at the top of the build by
@@ -65,6 +71,12 @@ Filters = [
     # in the Demo or other program directories" step), not headers and
     # objects for anything to link against.
     '.*devel-file-in-non-devel-package .*/usr/share/pidp1-mods/(FunStuff|Diagnostics)/.*',
+
+    # /etc/sudoers.d/pidp1-mods is 0440 root:root by design - sudo reads it
+    # as root and 0440 is how Fedora packages ship sudoers entries - and
+    # rpmlint's non-readable check has no sudoers.d exception. Same for the
+    # matching non-conffile-in-etc: it is a %config(noreplace) file now.
+    '.*non-readable .*/etc/sudoers\.d/pidp1-mods 440.*',
 
     # The one %post copy runs guarded: cp -a only when pdp23drum is absent,
     # so the "dangerous" overwrite scenario cannot happen. The alternative -
@@ -87,14 +99,14 @@ Filters = [
     # price of keeping the vendor tree pristine.
     '.*files-duplicate .*/vendor/github.com/gorilla/websocket/LICENSE.*',
 
-    # 2775 root:pidp1-mods on the state directories, /etc/pidp1-mods and the
+    # 2775 root:pidp1 on the state directories, /etc/pidp1-mods and the
     # writable Microtapes/Drums is the machine's shared-panel mode: anyone in
-    # pidp1-mods runs pdp1/pdp1central, and the setgid keeps group ownership
+    # pidp1 runs pdp1/pdp1central, and the setgid keeps group ownership
     # on new files (the drum image, saved configs, tape images). It matches
     # the tmpfiles fragment exactly, so rpm -V agrees with the modes.
     '.*non-standard-dir-perm .*pidp1-mods.* 2775',
 
-    # 0775 root:pidp1-mods on the five curated subdirectories of the shipped
+    # 0775 root:pidp1 on the five curated subdirectories of the shipped
     # tape library: the same shared-panel rule one level down, so operators
     # can curate tapes/doc or tapes/sources without root. They cannot carry
     # the setgid bit (their contents are package-owned %config(noreplace)

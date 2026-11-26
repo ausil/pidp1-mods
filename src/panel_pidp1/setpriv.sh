@@ -6,8 +6,8 @@
 #
 # This is only needed for the register backend's /dev/mem fallback. newpanel
 # now prefers the libgpiod backend: where it can claim the Pi's gpiochip -
-# packaged installs ship 60-pidp1-mods.rules and cabinet users are in the
-# pidp1-mods group - the driver runs unprivileged and setuid root, and this
+# packaged installs ship zz-pidp1-mods.rules and cabinet users are in the
+# pidp1 group - the driver runs unprivileged and setuid root, and this
 # script is not needed. A bare checkout has neither the group nor the rule
 # installed, which is why it still calls for them.
 

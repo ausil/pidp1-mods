@@ -10,8 +10,8 @@ After=pdp1.service
 
 [Service]
 Type=oneshot
-User=pidp1-mods
-Group=pidp1-mods
+User=pidp1
+Group=pidp1
 RemainAfterExit=yes
 Environment=PDP1_BOOT_NUMBER=
 ExecStart=/usr/share/pidp1-mods/bin/pdp1-bootcfg.sh

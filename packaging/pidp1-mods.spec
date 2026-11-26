@@ -36,11 +36,16 @@
 #   /usr/bin                 the user commands, matching the checkout install's
 #                            /usr/local/bin set; man pages for the front doors.
 #
-# The group pidp1-mods, created by the sysusers fragment (Source1), owns the
-# writable parts: the state directory (Source2's tmpfiles fragment keeps them
-# alive), /etc/pidp1-mods (pdp1central saves pidp1.config), and the
-# Microtapes/ and Drums/ data subdirectories the IOTs and drum tools write
-# images into. Operators run: usermod -aG pidp1-mods <name>.
+# The group pidp1, created by the sysusers fragment (Source1), is the
+# cabinet's operator group and owns the writable parts: the state directory
+# (Source2's tmpfiles fragment keeps them alive), /etc/pidp1-mods (pdp1central
+# saves pidp1.config), and the Microtapes/ and Drums/ data subdirectories the
+# IOTs and drum tools write images into. The same group gets the panel's GPIO
+# nodes from the shipped udev rule and the machine's console from the shipped
+# sudoers fragment (/etc/sudoers.d/pidp1-mods: sudo -u pidp1). The service
+# account is pidp1 too - user and group share the name, and nothing named
+# pidp1-mods is a user or group anywhere. Operators run:
+# usermod -aG pidp1 <name>.
 #
 # Deliberate deviations, expanded in packaging/README.md: the boot-time
 # systemd units (pdp1, pdp1-panel, pdp1-bootcfg) ship preset-disabled --
@@ -51,9 +56,11 @@
 # watch or debug the machine rather than being it; a -panel split waits for
 # hardware and headless boxes to diverge),
 # no setuid on the hardware panel driver (newpanel's libgpiod backend drives
-# the panel through /dev/gpiochipN, and the shipped 60-pidp1-mods.rules hands
-# the panel's controller to the pidp1-mods group; src/panel_pidp1/setpriv.sh
-# is left for the /dev/mem fallback on kernels that have neither gpiomem nor
+# the panel through /dev/gpiochipN, and the shipped zz-pidp1-mods.rules hands
+# the panel's controller to the pidp1 group -- zz-* so it loads after the
+# 99-* rules the sibling cabinet packages ship for the same chip, since a
+# node has one group and the last match wins; src/panel_pidp1/setpriv.sh is
+# left for the /dev/mem fallback on kernels that have neither gpiomem nor
 # gpiochip access), no firewall port opened at install (every server binds to
 # all interfaces on purpose -- a web front end or a t30dpy on another machine
 # is the design -- so remote access is the operator's call, taken with the two
@@ -61,11 +68,11 @@
 # one vendored blob: web_pdp1/vendor, gorilla/websocket, so %%build needs no
 # network. rpmlint's exceptions, each with its reason, are in rpmlint.toml.
 
-%global srcdate 20261121
+%global srcdate 20261125
 
 Name:           pidp1-mods
 Version:        1.0
-Release:        2.%{srcdate}%{?dist}
+Release:        5.%{srcdate}%{?dist}
 Summary:        PDP-1 simulator, PiDP-1 panel drivers, assembler and tools
 License:        MIT AND BSD-2-Clause
 URL:            https://github.com/ausil/pidp1-mods
@@ -87,6 +94,9 @@ Requires:       systemd nmap-ncat screen zenity python3 python3-tkinter lxtermin
 # udevadm in the scriptlets that reload the panel rule
 Requires(post): systemd-udev
 Recommends:     golang
+# the console attach in pdp1.sh: sudo -u pidp1 pidp1-attach, allowed
+# for the pidp1 group by the shipped sudoers fragment
+Recommends:     sudo
 # pdp1control start/apps launches t30dpy and tapevis beside the machine, so
 # a cabinet install keeps the clients by default; a remote operator installs
 # just the subpackage
@@ -190,6 +200,12 @@ done
 install -m 755 bin/macro1_1 %{buildroot}%{_bindir}/
 ln -s macro1_1 %{buildroot}%{_bindir}/macro1
 install -m 755 src/pdp1central/pdp1central %{buildroot}%{_bindir}/
+# the hardware test program (install/build-all.sh's src/pidp1_test leg). The
+# bin/* copy above skips it as an ELF, so name it here as the user command it
+# is; its wrapper test.sh travels with the read-only tree (a checkout keeps
+# it at the top level) and is symlinked below like the other scripts.
+install -m 755 src/pidp1_test/pidp1_test %{buildroot}%{_bindir}/
+install -m 755 test.sh $datadir/test.sh
 # scripts are installed once, in $datadir/bin, and named from /usr/bin by
 # symlink: a byte-identical copy would be (and was) hardlinked onto both
 # paths by brp-hardlink-dupes, which rpmlint rightly calls a cross-partition
@@ -203,6 +219,7 @@ ln -s ../share/pidp1-mods/bin/tkaskopenfilewrite %{buildroot}%{_bindir}/tkaskope
 ln -s ../share/pidp1-mods/bin/encode_fiodec     %{buildroot}%{_bindir}/encode_fiodec
 ln -s ../share/pidp1-mods/bin/decode_fiodec     %{buildroot}%{_bindir}/decode_fiodec
 ln -s ../share/pidp1-mods/bin/tape_visualizer   %{buildroot}%{_bindir}/tape_visualizer
+ln -s ../share/pidp1-mods/test.sh               %{buildroot}%{_bindir}/pidp1-test
 
 install -m 755 src/pdp1/pdp1                     $libexec/pdp1
 install -m 755 src/panel_pidp1/newpanel          $libexec/panel_pidp1
@@ -212,12 +229,19 @@ install -m 755 src/pdp1_periph/pdp1_periphES     $libexec/
 install -m 755 src/usb_paper_tape/pdp1_usb_monitor $libexec/
 install -m 755 src/ptytools/mkptyfio src/ptytools/mkptyfl $libexec/
 install -m 755 web_pdp1/pdpsrv                   $libexec/
+# pdp1.service's screen wrappers (ExecStart/ExecStop), and pidp1-attach,
+# the sudoers fragment's target for the group's console; see the comments in
+# them and in the unit for why systemd needs a bin_t script in between and
+# why the session has a socket directory of its own
+install -m 0755 packaging/systemd/libexec/pidp1-screen $libexec/
+install -m 0755 packaging/systemd/libexec/pidp1-stop   $libexec/
+install -m 0755 packaging/systemd/libexec/pidp1-attach $libexec/
 
 mkdir -p $iotdir
 install -m 755 IOTs/*.so $iotdir/
 
 # ---------------------------------------------------------------------------
-# Configuration and state. The writable bits are group pidp1-mods (created by
+# Configuration and state. The writable bits are group pidp1 (created by
 # the sysusers fragment in %%pre) so a panel driver started by any member can
 # write them. The tmpfiles fragment (Source2) recreates the state directories;
 # %%post seeds the drum image once. The tape library and boot configurations
@@ -233,7 +257,7 @@ cp -a bin/usb_paper_tape_ports.cfg %{buildroot}%{_sysconfdir}/pidp1-mods/
 
 mkdir -p -m 775 $statedir $statedir/tapes $statedir/bootcfg
 # the shipped library (9.4M of tapes, bootcfg/<number>.cfg files). What rpm
-# records is decided entirely by the %%attr in %%files (0664 root:pidp1-mods
+# records is decided entirely by the %%attr in %%files (0664 root:pidp1
 # data, 0775 subdirectories, 2775 top ones); these chmods just normalize the
 # cp -a'd tree so the buildroot matches.
 cp -a tapes/. $statedir/tapes/
@@ -247,6 +271,7 @@ find $statedir/tapes $statedir/bootcfg -type f -exec chmod 0644 {} +
 # ---------------------------------------------------------------------------
 install -Dm 0644 man/pdp1.1 %{buildroot}%{_mandir}/man1/pdp1.1
 install -Dm 0644 man/pdp1control.1 %{buildroot}%{_mandir}/man1/pdp1control.1
+install -Dm 0644 man/pidp1-test.1 %{buildroot}%{_mandir}/man1/pidp1-test.1
 
 # the vendored gorilla/websocket's notice, named after what it covers so it
 # does not collide with the project LICENSE in the licenses directory
@@ -273,10 +298,12 @@ install -m 644 install/soroban-icon2.svg  $icondir/soroban.svg
 install -Dm 0644 %{SOURCE1} %{buildroot}%{_sysusersdir}/pidp1-mods.conf
 install -Dm 0644 %{SOURCE2} %{buildroot}%{_tmpfilesdir}/pidp1-mods.conf
 # the udev rule that hands the panel's GPIO chip (and gpiomem, for the
-# register backend) to the pidp1-mods group; it lives under packaging/systemd/
-# beside its siblings, and Source0 carries it into the build
-install -Dm 0644 packaging/systemd/udev.d/60-pidp1-mods.rules \
-    %{buildroot}%{_udevrulesdir}/60-pidp1-mods.rules
+# register backend) to the pidp1 group; zz-* so it loads after the 99-* rules
+# the sibling cabinets ship for the same controller (see the rule's header).
+# It lives under packaging/systemd/ beside its siblings, and Source0 carries
+# it into the build
+install -Dm 0644 packaging/systemd/udev.d/zz-pidp1-mods.rules \
+    %{buildroot}%{_udevrulesdir}/zz-pidp1-mods.rules
 # The boot-time units and their preset. All three live under
 # packaging/systemd/ beside the fragments above and ride in Source0; the
 # preset disables them so an install stays opt-in (systemd's preset policy
@@ -300,6 +327,14 @@ install -Dm 0644 packaging/firewalld/pidp1-mods.xml \
 install -Dm 0644 packaging/firewalld/pidp1-mods-debug.xml \
     %{buildroot}%{_prefix}/lib/firewalld/services/pidp1-mods-debug.xml
 
+# The console attach: members of the pidp1 group may sudo -u pidp1 the
+# two pidp1-attach forms that look at and join the session the service owns.
+# The noreplace config mark (see %%files) is how Fedora packages ship a
+# sudoers entry a site may want to edit: site edits survive upgrades and
+# the shipped file lands as .rpmnew.
+install -Dm 0440 packaging/pidp1-mods.sudoers \
+    %{buildroot}%{_sysconfdir}/sudoers.d/pidp1-mods
+
 %check
 # the desktop entries must actually parse, and the mactoam1 fixture legs must
 # pass with the am1 and converter built above. The t1 corpus leg is skipped:
@@ -322,7 +357,7 @@ da=%{_datadir}/pidp1-mods
 # seed once; never overwrite what the site already put in the state directory
 if [ ! -f $st/pdp23drum ]; then
     cp -a $da/pdp23drum.example $st/pdp23drum
-    chgrp pidp1-mods $st/pdp23drum
+    chgrp pidp1 $st/pdp23drum
     chmod 0664 $st/pdp23drum
 fi
 gtk-update-icon-cache -qf %{_datadir}/icons/hicolor 2>/dev/null || :
@@ -347,6 +382,7 @@ udevadm control --reload-rules 2>/dev/null || :
 %doc README.md RELEASENOTES.txt PACKAGING.md
 %{_mandir}/man1/pdp1.1*
 %{_mandir}/man1/pdp1control.1*
+%{_mandir}/man1/pidp1-test.1*
 %{_bindir}/am1
 %{_bindir}/asr33tape
 %{_bindir}/decode_fiodec
@@ -367,6 +403,8 @@ udevadm control --reload-rules 2>/dev/null || :
 %{_bindir}/pdp1audio
 %{_bindir}/pdp1central
 %{_bindir}/pdp1control
+%{_bindir}/pidp1-test
+%{_bindir}/pidp1_test
 %{_bindir}/scanpf
 %{_bindir}/tape_visualizer
 %{_bindir}/tkaskopenfile
@@ -386,13 +424,15 @@ udevadm control --reload-rules 2>/dev/null || :
 %{_datadir}/pidp1-mods/web_pdp1
 %{_datadir}/pidp1-mods/pdp23drum.example
 %{_datadir}/pidp1-mods/pidp1.config.example
-%dir %attr(2775, root, pidp1-mods) %{_datadir}/pidp1-mods/Microtapes
-%attr(0664, root, pidp1-mods) %{_datadir}/pidp1-mods/Microtapes/*
-%dir %attr(2775, root, pidp1-mods) %{_datadir}/pidp1-mods/Drums
-%attr(0664, root, pidp1-mods) %{_datadir}/pidp1-mods/Drums/*
+%{_datadir}/pidp1-mods/test.sh
+%dir %attr(2775, root, pidp1) %{_datadir}/pidp1-mods/Microtapes
+%attr(0664, root, pidp1) %{_datadir}/pidp1-mods/Microtapes/*
+%dir %attr(2775, root, pidp1) %{_datadir}/pidp1-mods/Drums
+%attr(0664, root, pidp1) %{_datadir}/pidp1-mods/Drums/*
 %{_sysusersdir}/pidp1-mods.conf
 %{_tmpfilesdir}/pidp1-mods.conf
-%{_udevrulesdir}/60-pidp1-mods.rules
+%{_udevrulesdir}/zz-pidp1-mods.rules
+%attr(0440, root, root) %config(noreplace) %{_sysconfdir}/sudoers.d/pidp1-mods
 %{_unitdir}/pdp1.service
 %{_unitdir}/pdp1-panel.service
 %{_unitdir}/pdp1-bootcfg.service
@@ -414,7 +454,7 @@ udevadm control --reload-rules 2>/dev/null || :
 %{_datadir}/icons/hicolor/scalable/apps/pidp1-ptr.svg
 %{_datadir}/icons/hicolor/scalable/apps/soroban.svg
 %config(noreplace) %{_sysconfdir}/pidp1-mods/usb_paper_tape_ports.cfg
-# writable-by-group: the members of pidp1-mods run the machine. tapes/ and
+# writable-by-group: the members of pidp1 run the machine. tapes/ and
 # bootcfg/ are the shipped library itself: package-owned content in the state
 # tree, marked %%config(noreplace) -- a site that patches a bootcfg or a tape
 # keeps its copy across upgrades (the new shipped one arrives as .rpmnew),
@@ -429,20 +469,20 @@ udevadm control --reload-rules 2>/dev/null || :
 # name (none without, and no directory has one), the subdirectories'
 # contents one level down get */*. Add a %%dir line when the library grows a
 # sixth curated subdirectory.
-%dir %attr(2775, root, pidp1-mods) %{_sharedstatedir}/pidp1-mods
-%dir %attr(2775, root, pidp1-mods) %{_sharedstatedir}/pidp1-mods/tapes
-%dir %attr(0775, root, pidp1-mods) %{_sharedstatedir}/pidp1-mods/tapes/doc
-%dir %attr(0775, root, pidp1-mods) %{_sharedstatedir}/pidp1-mods/tapes/flap
-%dir %attr(0775, root, pidp1-mods) %{_sharedstatedir}/pidp1-mods/tapes/music
-%dir %attr(0775, root, pidp1-mods) %{_sharedstatedir}/pidp1-mods/tapes/old
-%dir %attr(0775, root, pidp1-mods) %{_sharedstatedir}/pidp1-mods/tapes/sources
-%config(noreplace) %attr(0664, root, pidp1-mods) %{_sharedstatedir}/pidp1-mods/tapes/*.*
-%config(noreplace) %attr(0664, root, pidp1-mods) %{_sharedstatedir}/pidp1-mods/tapes/*/*
-%dir %attr(2775, root, pidp1-mods) %{_sharedstatedir}/pidp1-mods/bootcfg
-%config(noreplace) %attr(0664, root, pidp1-mods) %{_sharedstatedir}/pidp1-mods/bootcfg/*
-%dir %attr(2775, root, pidp1-mods) %{_sysconfdir}/pidp1-mods
-%attr(0664, root, pidp1-mods) %config(noreplace) %{_sysconfdir}/pidp1-mods/pidp1.config
-%attr(0664, root, pidp1-mods) %config(noreplace) %{_sysconfdir}/pidp1-mods/microtapes.txt
+%dir %attr(2775, root, pidp1) %{_sharedstatedir}/pidp1-mods
+%dir %attr(2775, root, pidp1) %{_sharedstatedir}/pidp1-mods/tapes
+%dir %attr(0775, root, pidp1) %{_sharedstatedir}/pidp1-mods/tapes/doc
+%dir %attr(0775, root, pidp1) %{_sharedstatedir}/pidp1-mods/tapes/flap
+%dir %attr(0775, root, pidp1) %{_sharedstatedir}/pidp1-mods/tapes/music
+%dir %attr(0775, root, pidp1) %{_sharedstatedir}/pidp1-mods/tapes/old
+%dir %attr(0775, root, pidp1) %{_sharedstatedir}/pidp1-mods/tapes/sources
+%config(noreplace) %attr(0664, root, pidp1) %{_sharedstatedir}/pidp1-mods/tapes/*.*
+%config(noreplace) %attr(0664, root, pidp1) %{_sharedstatedir}/pidp1-mods/tapes/*/*
+%dir %attr(2775, root, pidp1) %{_sharedstatedir}/pidp1-mods/bootcfg
+%config(noreplace) %attr(0664, root, pidp1) %{_sharedstatedir}/pidp1-mods/bootcfg/*
+%dir %attr(2775, root, pidp1) %{_sysconfdir}/pidp1-mods
+%attr(0664, root, pidp1) %config(noreplace) %{_sysconfdir}/pidp1-mods/pidp1.config
+%attr(0664, root, pidp1) %config(noreplace) %{_sysconfdir}/pidp1-mods/microtapes.txt
 
 # The network clients share one package because they share one reason to
 # exist -- a machine that talks to a pdp1 elsewhere -- and one dependency
@@ -468,6 +508,68 @@ udevadm control --reload-rules 2>/dev/null || :
 %config(noreplace) %{_sysconfdir}/pidp1-mods/t30dpy.config
 
 %changelog
+* Wed Nov 25 2026 Dennis Gilmore <dennis@ausil.us> - 1.0-5.20261125
+- pdp1.service starts again: screen died at once with "Directory
+  '/run/screen' must have mode 777". NoNewPrivileges= suppresses screen's
+  setgid bit, and without that egid screen insists on 0777 for the screen
+  RPM's 0775 root:screen /run/screen - the group list does not count. The
+  session now lives in its own socket directory, /run/pidp1/screen (0700
+  pidp1, tmpfiles), pinned in all three wrappers. The console attach moves
+  with it: sudoers allows the new pidp1-attach wrapper (which pins
+  SCREENDIR, since sudo's env_reset drops it) instead of a bare screen -x
+  that looked in /run/screen and found nothing, with use_pty so screen as
+  pidp1 can open the terminal.
+- libgpiod backend: PIDP1_GPIO_CHIP no longer overflows the 64-byte path
+  buffer; gpio_get_level no longer flips a held output line to input (v2
+  reads outputs fine, and the register backend never changes direction on
+  a read); gpio_set/gpio_clear make the line an output, as the register
+  backend's do.
+- The panel driver no longer exits silently under an upstream device tree
+  (Fedora's kernel on a Pi 5): gpiolib_init() counted GPIOs only by
+  walking /aliases/gpioN, which only Raspberry Pi device trees carry, so
+  it returned 0 and initGPIO() gave up although libgpiod had already
+  claimed the RP1. The gpiod chip's line count stands in now, both
+  failure paths say what failed, and PIDP1_GPIO_VERBOSE=1 shows the
+  chip probe.
+
+* Wed Nov 25 2026 Dennis Gilmore <dennis@ausil.us> - 1.0-4.20261125
+- The panel's libgpiod backend actually drives the panel now (the pidp8i
+  packaging's fixup patch is the reference for all four defects):
+  auto-select matched chip names as *substrings*, so on a Pi 5 the probe
+  claimed one of the 32-line brcmstb-gpio blocks ahead of the header -
+  "brcm" is a substring - and the panel drove a dead controller even as
+  root; direction/pull changes release-then-re-requested a line this
+  process still held, which the kernel refuses with EBUSY (reconfigure in
+  place is the only legal way, and it also closes the glitch window); every
+  line was requested with bias DISABLED, destroying the firmware's
+  power-on pull-ups so all buttons read released (bias is AS_IS unless
+  gpio_set_pull asked otherwise); get_level sampled lines still held as
+  outputs and set_drive force-flipped columns to outputs, breaking the
+  register backend's blank-to-input matrix pattern. PIDP1_GPIO_CHIP now
+  also accepts a chip name (pinctrl-rp1), requests carry the "pidp1"
+  consumer for gpioinfo, and a permission-refused probe says so.
+
+* Wed Nov 25 2026 Dennis Gilmore <dennis@ausil.us> - 1.0-3.20261125
+- The operator group and the service account are both the literal pidp1,
+  matching the cabinet host's existing group: one sysusers line creates the
+  group and the user with it as primary (a GIDNAME in a u line's second
+  column parses only as "-" or a number - it died on aset that way), and
+  the udev rule, the tmpfiles and the group-attr'd state tree,
+  /etc/pidp1-mods and the units all key off it; operators are
+  usermod -aG pidp1. The rule installs as zz-pidp1-mods.rules so it loads
+  after the 99-* rules the PiDP-10/PiDP-11 packaging ships for the same
+  RP1/bcm2835 controller - a node has one group and the last match wins
+  (pidp10's rule was taking the Pi 5 header chip under both).
+- The console is shared by the group: pdp1.service now runs the engine in a
+  detached screen session named pidp1 (new pidp1-screen/pidp1-stop
+  wrappers, SupplementaryGroups=screen, the SELinux and setgid reasons in
+  the unit's comments), /etc/sudoers.d/pidp1-mods lets pidp1 members
+  `sudo -u pidp1 screen -ls/-x pidp1`, and `pdp1` with no arguments
+  falls back to that session.
+- The panel test program is finally in the RPM - the bin/* copy skipped it
+  as an ELF: /usr/bin/pidp1_test, test.sh as /usr/bin/pidp1-test with a man
+  page, and test.sh starts the panel driver unprivileged for pidp1 members.
+
 * Sat Nov 21 2026 Dennis Gilmore <dennis@ausil.us> - 1.0-2.20261121
 - The servers listen on IPv6, and on IPv4 through it: one dual-family
   socket per port (IPV6_V6ONLY off), with the IPv4-only socket kept as

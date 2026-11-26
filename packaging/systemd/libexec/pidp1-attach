@@ -1,0 +1,21 @@
+#!/bin/sh
+# The console door for members of the pidp1 group, run through sudo as the
+# pidp1 service account (/etc/sudoers.d/pidp1-mods allows exactly
+# "pidp1-attach" and "pidp1-attach -ls"). pdp1.service keeps the engine in
+# a screen session in its own socket directory (see pidp1-screen for why it
+# is not /run/screen), and sudo resets the environment, so the directory is
+# pinned here rather than trusted from the caller.
+#
+#   pidp1-attach -ls   list the session (pdp1.sh checks before attaching)
+#   pidp1-attach       attach to it, sharing it with anyone else attached
+#
+# Any other argument is refused, even though sudoers already refuses it:
+# this script is also on disk for root to run by hand.
+SCREENDIR=/run/pidp1/screen
+export SCREENDIR
+
+case "$#:$1" in
+0:)	exec /usr/bin/screen -x pidp1 ;;
+1:-ls)	exec /usr/bin/screen -ls pidp1 ;;
+*)	echo "usage: pidp1-attach [-ls]" >&2; exit 2 ;;
+esac

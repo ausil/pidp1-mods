@@ -9,10 +9,10 @@ After=pdp1.service
 
 [Service]
 Type=simple
-# The group owns /dev/gpiochipN (60-pidp1-mods.rules) and /dev/gpiomem, so
+# The group owns /dev/gpiochipN (zz-pidp1-mods.rules) and /dev/gpiomem, so
 # the driver needs no more than this.
-User=pidp1-mods
-Group=pidp1-mods
+User=pidp1
+Group=pidp1
 ExecStart=/usr/libexec/pidp1-mods/panel_pidp1
 Restart=on-failure
 RestartSec=3

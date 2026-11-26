@@ -1,0 +1,30 @@
+# /etc/sudoers.d/pidp1-mods -- shipped by the pidp1-mods package.
+#
+# Let members of the pidp1 group look at and attach to the cabinet's machine.
+# pdp1.service runs the simulator inside a detached screen session named
+# pidp1 owned by the pidp1 service account, and screen lets only a session's
+# own user attach -- so group access goes through these two exact command
+# lines instead. `pdp1` with no arguments (bin/pdp1.sh) uses them when its
+# own socket directory holds no session.
+#
+# The target is the pidp1-attach wrapper, not /usr/bin/screen: the service's
+# session lives in its own socket directory (/run/pidp1/screen, see
+# pidp1-screen), sudo's env_reset drops SCREENDIR, and a bare screen -x would
+# look in /run/screen and find nothing. The wrapper pins the directory. The
+# "" after the first entry means "no arguments at all".
+#
+# use_pty: screen running as pidp1 has to open the caller's terminal, and
+# the caller's own pty is not pidp1's to open ("Cannot open your terminal").
+# Under use_pty sudo gives the command a fresh pty owned by the runas user.
+# Recent sudo turns it on by default; this keeps it on for the console even
+# where a site's sudoers turns it off.
+#
+# Only these exact command lines are permitted. Note that anyone who can
+# attach can use screen's ^A : commands to run programs as the pidp1 user,
+# so treat membership of the pidp1 group as trusted.
+Cmnd_Alias PIDP1_CONSOLE = \
+    /usr/libexec/pidp1-mods/pidp1-attach "", \
+    /usr/libexec/pidp1-mods/pidp1-attach -ls
+
+Defaults!PIDP1_CONSOLE use_pty
+%pidp1 ALL=(pidp1) NOPASSWD: PIDP1_CONSOLE

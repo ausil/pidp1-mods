@@ -1,0 +1,24 @@
+#!/bin/sh
+# ExecStart wrapper for pdp1.service. Two things make it necessary:
+#
+#   SELinux: /usr/bin/screen is screen_exec_t, and policy grants the
+#   transition into screen_t to the legacy daemon domain only. systemd
+#   itself (init_t) is denied { execute } and the unit dies at
+#   status=203/EXEC. Executing screen from a bin_t script starts it from
+#   this unit's own (unconfined) domain, which is permitted.
+#
+#   The socket directory. The screen RPM's /run/screen is 0775 root:screen
+#   and is writable only through screen's setgid bit, which NoNewPrivileges=
+#   suppresses. Without that effective gid screen's own check demands mode
+#   777 there ("Directory '/run/screen' must have mode 777."), and a
+#   supplementary screen group does not satisfy it: screen compares its
+#   egid with the directory's group, not the group list. So the session
+#   gets a private socket directory instead, /run/pidp1/screen (0700 pidp1,
+#   from the tmpfiles fragment), and a private SCREENDIR only has to be
+#   owned by the caller with mode 700.
+#
+# SCREENDIR is pinned here, not just in the unit, so that this wrapper,
+# pidp1-stop and pidp1-attach (the sudo target) always agree on it.
+SCREENDIR=/run/pidp1/screen
+export SCREENDIR
+exec /usr/bin/screen "$@"

@@ -1,0 +1,39 @@
+.TH PIDP1-TEST 1 "25 November 2026" "pidp1-mods" "PiDP-1 User Commands"
+.SH NAME
+pidp1-test \- exercise the PiDP-1 hardware front panel
+.SH SYNOPSIS
+.B pidp1-test
+.br
+.BI pidp1_test
+.SH DESCRIPTION
+.B pidp1-test
+drives the PiDP-1 hardware front panel by hand, so dead lamps and stuck
+switches can be found without a simulator running. It stops the running
+simulation, starts the panel driver, runs the tests in
+.B pidp1_test
+and stops the driver again. The tests walk a light across the panel lamps,
+print the switch and joystick state in octal for you to check against the
+physical switches, and prompt you through each check.
+.PP
+.B pidp1_test
+is the test program itself. Run it directly only while a panel driver is
+already up (started by
+.BR pdp1-test ,
+the
+.BR pdp1-panel
+service, or
+.BR pdp1control ),
+as it only reads and writes the panel lines.
+.PP
+On a packaged install the panel's GPIO nodes belong to the
+.B pidp1
+group (the shipped udev rule), so a member of that group starts the panel
+driver without a password; anyone else pays a
+.BR sudo .
+.SH FILES
+.TP
+.B /var/lib/pidp1-mods
+the state directory the simulation is started from
+.SH "SEE ALSO"
+.BR pdp1 (1),
+.BR pdp1control (1)

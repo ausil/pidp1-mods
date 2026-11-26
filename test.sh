@@ -20,11 +20,16 @@ echo
 echo starting pidp-1 panel driver...
 
 # The driver drives the panel through libgpiod when it can claim the Pi's gpiochip; a
-# packaged install ships 60-pidp1-mods.rules and cabinet users are in the pidp1-mods group,
+# packaged install ships zz-pidp1-mods.rules and cabinet users are in the pidp1 group,
 # which makes that sudo unnecessary there. A bare checkout has neither the group nor the
 # rule, so it starts the driver as root. PIDP1_GPIO_CHIP pins the chip by name if a board
-# has more than one.
-sudo "$PIDP1_LIBEXECDIR/panel_pidp1"&
+# has more than one. (Exact group match: a -w test would also accept pidp1-mods and any
+# other group that merely starts with pidp1.)
+if id -nG | tr ' ' '\n' | grep -qx pidp1; then
+	"$PIDP1_LIBEXECDIR/panel_pidp1"&
+else
+	sudo "$PIDP1_LIBEXECDIR/panel_pidp1"&
+fi
 
 echo ...started panel driver
 sleep 1
